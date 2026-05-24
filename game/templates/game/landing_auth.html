@@ -9,13 +9,13 @@
     <!-- Top Right Profile Button & Dropdown -->
     <div style="position: absolute; top: 20px; right: 20px; z-index: 100;">
         <button type="button" id="btn-profile" class="btn btn-secondary" style="border-radius: 50%; width: 50px; height: 50px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-color: rgba(255,255,255,0.2);">
-            👤
+            <i class="ph-duotone ph-user" style="color: #C084FC; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i>
         </button>
         
         <!-- Profile Dropdown Modal -->
         <div id="profile-dropdown" class="glass-card" style="display: none; position: absolute; top: 60px; right: 0; width: 260px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); transform-origin: top right;">
             <div style="text-align: center; margin-bottom: 20px;">
-                <div style="font-size: 2.5rem; margin-bottom: 10px;">👑</div>
+                <div style="font-size: 2.8rem; margin-bottom: 10px; color: #FBBF24;"><i class="ph-duotone ph-crown" style="filter: drop-shadow(0 4px 8px rgba(251, 191, 36, 0.4));"></i></div>
                 <h3 style="font-family: var(--font-display); color: var(--text-primary); margin-bottom: 4px; font-size: 1.3rem;">{{ username }}</h3>
                 <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Word Hunter</p>
             </div>
@@ -42,7 +42,7 @@
 
     <div class="landing-container">
         <div class="logo-section">
-            <div class="logo-icon">🔍</div>
+            <div class="logo-icon"><i class="ph-duotone ph-magnifying-glass" style="color: #67E8F9; filter: drop-shadow(0 4px 12px rgba(103, 232, 249, 0.4)) drop-shadow(0 2px 0px rgba(255,255,255,0.2)); transform: scale(1.1); display: inline-block;"></i></div>
             <h1 class="logo-title">Word Hunt</h1>
             <p class="logo-subtitle">Welcome back, <strong style="color: var(--text-primary);">{{ username }}</strong>! Ready to hunt?</p>
         </div>
@@ -50,7 +50,7 @@
         <div class="card glass-card">
             {% if error %}
             <div class="error-banner" id="error-banner">
-                <span>⚠️ {{ error }}</span>
+                <span><i class="ph-duotone ph-warning"></i> {{ error }}</span>
             </div>
             {% endif %}
 
@@ -58,12 +58,12 @@
                 {% csrf_token %}
                 <div class="button-group">
                     <button type="submit" name="action" value="create" class="btn btn-primary" id="btn-create">
-                        <span class="btn-icon">🎮</span>
+                        <span class="btn-icon"><i class="ph-duotone ph-game-controller" style="color: #FFF; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i></span>
                         <span class="btn-text">Create Room</span>
                     </button>
 
                     <button type="button" class="btn btn-secondary" id="btn-join-toggle">
-                        <span class="btn-icon">🤝</span>
+                        <span class="btn-icon"><i class="ph-duotone ph-handshake" style="color: #FBBF24; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i></span>
                         <span class="btn-text">Join Room</span>
                     </button>
                 </div>
@@ -84,14 +84,14 @@
                         >
                     </div>
                     <button type="submit" name="action" value="join" class="btn btn-accent" id="btn-join-submit">
-                        <span class="btn-icon">🚀</span>
+                        <span class="btn-icon"><i class="ph-duotone ph-rocket-launch" style="color: #F87171; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i></span>
                         <span class="btn-text">Let's Go!</span>
                     </button>
                 </div>
             </form>
         </div>
 
-        <p class="footer-note">Spend time with your 💖 Chanks</p>
+        <p class="footer-note">Spend time with your <i class="ph-duotone ph-heart" style="color: #F472B6; filter: drop-shadow(0 2px 4px rgba(244, 114, 182, 0.4)); transform: scale(1.2); display: inline-block;"></i> Chanks</p>
     </div>
 </div>
 

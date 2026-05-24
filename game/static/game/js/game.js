@@ -99,14 +99,14 @@
         setWordClickMode(data.state, data.current_picker);
 
         // Restore hunting state on reconnect
-        if (data.state === 'hunting' && data.current_picker !== USERNAME && !isEliminated) {
+        if (data.state === 'hunting') {
             const me = data.players.find(p => p.username === USERNAME);
-            if (me && !me.found_current_word) {
+            if (me && !me.found_current_word && data.current_picker !== USERNAME && !isEliminated) {
                 isHunting = true;
                 myTimeBank = me.time_bank;
                 myTimerStart = Date.now();
-                startTimer();
             }
+            startTimer();
         }
     }
 
@@ -335,7 +335,6 @@
         if (gameState && gameState.current_picker !== USERNAME && !isEliminated) {
             isHunting = true;
             myTimerStart = Date.now();
-            startTimer();
 
             // Enable clicking
             document.querySelectorAll('.arena-word').forEach(w => w.classList.remove('disabled'));
@@ -343,6 +342,8 @@
             // Picker or eliminated — disable
             document.querySelectorAll('.arena-word').forEach(w => w.classList.add('disabled'));
         }
+        
+        startTimer();
     }
 
     // --- Player Found ---
@@ -356,7 +357,6 @@
         // If it's us
         if (data.username === USERNAME) {
             isHunting = false;
-            stopTimer();
             myTimeBank = data.time_bank;
 
             // Highlight the found word on the board
@@ -390,7 +390,6 @@
         if (data.username === USERNAME) {
             isEliminated = true;
             isHunting = false;
-            stopTimer();
             const el = document.getElementById('eliminated-overlay');
             el.classList.add('visible');
             setTimeout(() => el.classList.remove('visible'), 4000);
@@ -481,7 +480,7 @@
     function startTimer() {
         stopTimer();
         timerInterval = setInterval(() => {
-            if (!isHunting) {
+            if (gameState && gameState.state !== 'hunting') {
                 stopTimer();
                 return;
             }

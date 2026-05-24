@@ -15,7 +15,7 @@
 
     <div class="landing-container">
         <div class="logo-section">
-            <div class="logo-icon">🔍</div>
+            <div class="logo-icon"><i class="ph-duotone ph-magnifying-glass" style="color: #67E8F9; filter: drop-shadow(0 4px 12px rgba(103, 232, 249, 0.4)) drop-shadow(0 2px 0px rgba(255,255,255,0.2)); transform: scale(1.1); display: inline-block;"></i></div>
             <h1 class="logo-title">Word Hunt</h1>
             <p class="logo-subtitle">Find words. Beat your friends. Have fun!</p>
         </div>
@@ -23,22 +23,38 @@
         <div class="card glass-card">
             {% if error %}
             <div class="error-banner" id="error-banner">
-                <span>⚠️ {{ error }}</span>
+                <span><i class="ph-duotone ph-warning"></i> {{ error }}</span>
             </div>
             {% endif %}
 
             <!-- Tabs -->
             <div class="auth-tabs">
-                <button class="auth-tab active" id="tab-login">Login</button>
-                <button class="auth-tab" id="tab-register">Register</button>
+                <button class="auth-tab active" id="tab-register">Register</button>
+                <button class="auth-tab" id="tab-login">Login</button>
             </div>
 
-            <!-- Login Form -->
-            <form method="post" action="{% url 'login' %}" id="form-login">
+            <!-- Register Form -->
+            <form method="post" action="{% url 'register' %}" id="form-register">
+                {% csrf_token %}
+                <div class="input-group">
+                    <label for="reg-username" class="input-label">Choose a Username</label>
+                    <input type="text" id="reg-username" name="username" class="text-input" placeholder="" maxlength="10" autocomplete="off" required>
+                </div>
+                <div class="input-group">
+                    <label for="reg-pin" class="input-label">Create a 4-Letter PIN</label>
+                    <input type="password" id="reg-pin" name="pin" class="text-input" placeholder="****" maxlength="4" autocomplete="off" required>
+                </div>
+                <button type="submit" class="btn btn-accent" style="width: 100%;">
+                    <span class="btn-text">Create Account</span>
+                </button>
+            </form>
+
+            <!-- Login Form (hidden) -->
+            <form method="post" action="{% url 'login' %}" id="form-login" style="display: none;">
                 {% csrf_token %}
                 <div class="input-group">
                     <label for="login-username" class="input-label">Username</label>
-                    <input type="text" id="login-username" name="username" class="text-input" placeholder="Your Name" maxlength="10" autocomplete="off" required>
+                    <input type="text" id="login-username" name="username" class="text-input" placeholder="" maxlength="10" autocomplete="off" required>
                 </div>
                 <div class="input-group">
                     <label for="login-pin" class="input-label">4-Letter PIN</label>
@@ -48,25 +64,9 @@
                     <span class="btn-text">Login</span>
                 </button>
             </form>
-
-            <!-- Register Form (hidden) -->
-            <form method="post" action="{% url 'register' %}" id="form-register" style="display: none;">
-                {% csrf_token %}
-                <div class="input-group">
-                    <label for="reg-username" class="input-label">Choose a Username</label>
-                    <input type="text" id="reg-username" name="username" class="text-input" placeholder="Max 10 characters" maxlength="10" autocomplete="off" required>
-                </div>
-                <div class="input-group">
-                    <label for="reg-pin" class="input-label">Create a 4-Letter PIN</label>
-                    <input type="password" id="reg-pin" name="pin" class="text-input" placeholder="Maximum 4 chars" maxlength="4" autocomplete="off" required>
-                </div>
-                <button type="submit" class="btn btn-accent" style="width: 100%;">
-                    <span class="btn-text">Create Account</span>
-                </button>
-            </form>
         </div>
 
-        <p class="footer-note">Spend time with your 💖 Chanks</p>
+        <p class="footer-note">Spend time with your <i class="ph-duotone ph-heart" style="color: #F472B6; filter: drop-shadow(0 2px 4px rgba(244, 114, 182, 0.4)); transform: scale(1.2); display: inline-block;"></i> Chanks</p>
     </div>
 </div>
 

@@ -19,7 +19,7 @@
                 <span class="code-letter">{{ room_code.2 }}</span>
             </div>
             <button class="btn-copy" id="btn-copy" title="Copy room code">
-                📋 Copy
+                <i class="ph-duotone ph-copy"></i> Copy
             </button>
         </div>
 
@@ -33,7 +33,7 @@
 
         {% if is_creator %}
         <button class="btn btn-primary btn-start" id="btn-start" disabled>
-            <span class="btn-icon">🚀</span>
+            <span class="btn-icon"><i class="ph-duotone ph-rocket-launch" style="color: #FFF; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i></span>
             <span class="btn-text">Start Game</span>
             <span class="btn-note" id="btn-start-note">Need at least 2 players</span>
         </button>
