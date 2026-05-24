@@ -1,0 +1,206 @@
+{% extends "game/base.html" %}
+{% load static %}
+
+{% block title %}Word Hunt — Play with Friends!{% endblock %}
+
+{% block content %}
+<div class="landing-bg">
+    <!-- Floating word bubbles (decorative) -->
+    <div class="bubble bubble-1">hunt</div>
+    <div class="bubble bubble-2">find</div>
+    <div class="bubble bubble-3">word</div>
+    <div class="bubble bubble-4">play</div>
+    <div class="bubble bubble-5">win!</div>
+    <div class="bubble bubble-6">go!</div>
+
+    <div class="landing-container">
+        <div class="logo-section">
+            <div class="logo-icon">🔍</div>
+            <h1 class="logo-title">Word Hunt</h1>
+            <p class="logo-subtitle">Find words. Beat your friends. Have fun!</p>
+        </div>
+
+        <div class="card glass-card">
+            <form method="post" action="{% url 'landing' %}" id="landing-form">
+                {% csrf_token %}
+
+                {% if error %}
+                <div class="error-banner" id="error-banner">
+                    <span>⚠️ {{ error }}</span>
+                </div>
+                {% endif %}
+
+                <!-- Step 1: Username -->
+                <div id="step-username">
+                    <div class="input-group">
+                        <label for="username" class="input-label">What's your name?</label>
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            class="text-input"
+                            placeholder="Enter your name..."
+                            maxlength="15"
+                            value="{{ username|default:'' }}"
+                            autocomplete="off"
+                            required
+                        >
+                    </div>
+
+                    <button type="button" class="btn btn-primary" id="btn-set-name" style="width: 100%;">
+                        <span class="btn-icon">✨</span>
+                        <span class="btn-text">Continue</span>
+                    </button>
+                </div>
+
+                <!-- Step 2: Create or Join (hidden until username set) -->
+                <div id="step-actions" style="display: none;">
+                    <div class="username-display">
+                        <span class="username-greeting">Playing as</span>
+                        <span class="username-tag" id="username-tag"></span>
+                        <button type="button" class="btn-change" id="btn-change-name">✏️ Change</button>
+                    </div>
+
+                    <div class="button-group">
+                        <button type="submit" name="action" value="create" class="btn btn-primary" id="btn-create">
+                            <span class="btn-icon">🎮</span>
+                            <span class="btn-text">Create Room</span>
+                        </button>
+
+                        <button type="button" class="btn btn-secondary" id="btn-join-toggle">
+                            <span class="btn-icon">🚪</span>
+                            <span class="btn-text">Join Room</span>
+                        </button>
+                    </div>
+
+                    <!-- Join Room panel (hidden by default) -->
+                    <div class="join-panel" id="join-panel">
+                        <div class="input-group">
+                            <label for="room_code" class="input-label">Room Code</label>
+                            <input
+                                type="text"
+                                id="room_code"
+                                name="room_code"
+                                class="text-input code-input"
+                                placeholder="ABC"
+                                maxlength="3"
+                                autocomplete="off"
+                                style="text-transform: uppercase; text-align: center; letter-spacing: 8px; font-size: 1.8rem;"
+                            >
+                        </div>
+                        <button type="submit" name="action" value="join" class="btn btn-accent" id="btn-join-submit">
+                            <span class="btn-icon">🚀</span>
+                            <span class="btn-text">Let's Go!</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <p class="footer-note">Made with 💖 for friends across the world</p>
+    </div>
+</div>
+
+<script>
+    const usernameInput = document.getElementById('username');
+    const stepUsername = document.getElementById('step-username');
+    const stepActions = document.getElementById('step-actions');
+    const usernameTag = document.getElementById('username-tag');
+    const btnSetName = document.getElementById('btn-set-name');
+    const btnChangeName = document.getElementById('btn-change-name');
+
+    function capitalize(str) {
+        return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+    }
+
+    function showInputError(msg) {
+        usernameInput.style.borderColor = '#F87171';
+        usernameInput.style.boxShadow = '0 0 0 4px rgba(248,113,113,0.15)';
+        // Show error below input
+        let err = document.getElementById('inline-error');
+        if (!err) {
+            err = document.createElement('div');
+            err.id = 'inline-error';
+            err.style.cssText = 'color: #F87171; font-size: 0.8rem; margin-top: 6px; font-weight: 600;';
+            usernameInput.parentNode.appendChild(err);
+        }
+        err.textContent = msg;
+        setTimeout(() => {
+            usernameInput.style.borderColor = '';
+            usernameInput.style.boxShadow = '';
+            if (err) err.remove();
+        }, 3000);
+    }
+
+    // Step 1 → Step 2: Validate and set username
+    btnSetName.addEventListener('click', () => {
+        let name = usernameInput.value.trim();
+
+        if (!name) {
+            showInputError('Please enter your name');
+            usernameInput.focus();
+            return;
+        }
+        if (name.length < 2) {
+            showInputError('Name must be at least 2 characters');
+            usernameInput.focus();
+            return;
+        }
+        if (!/^[a-zA-Z0-9]+$/.test(name)) {
+            showInputError('Only letters and numbers allowed');
+            usernameInput.focus();
+            return;
+        }
+
+        // Capitalize to match server normalization
+        name = capitalize(name);
+        usernameInput.value = name;
+
+        usernameTag.textContent = name;
+        stepUsername.style.display = 'none';
+        stepActions.style.display = 'block';
+        stepActions.style.animation = 'slideUp 0.3s ease-out';
+    });
+
+    // Enter key on username field
+    usernameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            btnSetName.click();
+        }
+    });
+
+    // Change name → go back to step 1
+    btnChangeName.addEventListener('click', () => {
+        stepActions.style.display = 'none';
+        stepUsername.style.display = 'block';
+        usernameInput.focus();
+        usernameInput.select();
+    });
+
+    // Toggle join panel
+    const joinToggle = document.getElementById('btn-join-toggle');
+    const joinPanel = document.getElementById('join-panel');
+    let joinVisible = false;
+
+    joinToggle.addEventListener('click', () => {
+        joinVisible = !joinVisible;
+        joinPanel.classList.toggle('visible', joinVisible);
+        if (joinVisible) {
+            document.getElementById('room_code').focus();
+        }
+    });
+
+    // Auto-uppercase room code
+    const codeInput = document.getElementById('room_code');
+    codeInput.addEventListener('input', (e) => {
+        e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+    });
+
+    // Dismiss error banner
+    const errorBanner = document.getElementById('error-banner');
+    if (errorBanner) {
+        setTimeout(() => errorBanner.classList.add('fade-out'), 4000);
+    }
+</script>
+{% endblock %}

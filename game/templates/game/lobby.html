@@ -1,0 +1,57 @@
+{% extends "game/base.html" %}
+{% load static %}
+
+{% block title %}Lobby — {{ room_code }} | Word Hunt{% endblock %}
+
+{% block content %}
+<div class="landing-bg">
+    <div class="lobby-container">
+        <div class="lobby-header">
+            <h1 class="logo-title logo-title-sm">Word Hunt</h1>
+            <p class="logo-subtitle">Waiting for players...</p>
+        </div>
+
+        <div class="card glass-card room-code-card">
+            <p class="room-code-label">Room Code</p>
+            <div class="room-code-display" id="room-code" data-code="{{ room_code }}">
+                <span class="code-letter">{{ room_code.0 }}</span>
+                <span class="code-letter">{{ room_code.1 }}</span>
+                <span class="code-letter">{{ room_code.2 }}</span>
+            </div>
+            <button class="btn-copy" id="btn-copy" title="Copy room code">
+                📋 Copy
+            </button>
+        </div>
+
+        <div class="card glass-card players-card">
+            <h2 class="card-title">Players <span class="player-count" id="player-count">(0/5)</span></h2>
+            <div class="player-list" id="player-list">
+                <!-- Players will be added dynamically via WebSocket -->
+                <div class="player-placeholder">Waiting for players to join...</div>
+            </div>
+        </div>
+
+        {% if is_creator %}
+        <button class="btn btn-primary btn-start" id="btn-start" disabled>
+            <span class="btn-icon">🚀</span>
+            <span class="btn-text">Start Game</span>
+            <span class="btn-note" id="btn-start-note">Need at least 2 players</span>
+        </button>
+        {% else %}
+        <div class="waiting-message">
+            <div class="waiting-dots">
+                <span></span><span></span><span></span>
+            </div>
+            <p>Waiting for the host to start the game...</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    const ROOM_CODE = '{{ room_code }}';
+    const USERNAME = '{{ username }}';
+    const IS_CREATOR = {{ is_creator|yesno:"true,false" }};
+</script>
+<script src="{% static 'game/js/lobby.js' %}"></script>
+{% endblock %}

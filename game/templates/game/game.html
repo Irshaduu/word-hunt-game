@@ -1,0 +1,87 @@
+{% extends "game/base.html" %}
+{% load static %}
+
+{% block title %}Game — {{ room_code }} | Word Hunt{% endblock %}
+
+{% block extra_css %}
+<script>document.documentElement.classList.add('game-page');</script>
+{% endblock %}
+
+{% block content %}
+<div class="game-container">
+    <!-- Header: Scoreboard -->
+    <div class="game-header" id="game-header">
+        <div class="header-top">
+            <span class="header-room-code">🔍 {{ room_code }}</span>
+            <button class="btn-exit" onclick="window.location.href='/'">✖️ Exit</button>
+        </div>
+        <div class="scoreboard" id="scoreboard">
+            <!-- Player cards populated by JS -->
+        </div>
+    </div>
+
+    <!-- Turn Indicator Banner -->
+    <div class="turn-banner" id="turn-banner">
+        <span id="turn-text"></span>
+    </div>
+
+    <!-- The Arena: Word Board -->
+    <div class="arena-wrapper">
+        <div class="arena" id="arena">
+            <!-- Words will be placed here by JS -->
+        </div>
+    </div>
+
+    <!-- Word Popup Overlay (3-second display) -->
+    <div class="overlay popup-overlay" id="popup-overlay">
+        <div class="popup-card">
+            <p class="popup-label" id="popup-label">Word chosen by <span id="popup-picker"></span></p>
+            <div class="popup-word" id="popup-word"></div>
+            <div class="popup-timer-bar">
+                <div class="popup-timer-fill" id="popup-timer-fill"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GO! Animation Overlay -->
+    <div class="overlay go-overlay" id="go-overlay">
+        <div class="go-text">GO!</div>
+    </div>
+
+    <!-- Eliminated Overlay -->
+    <div class="overlay eliminated-overlay" id="eliminated-overlay">
+        <div class="eliminated-card">
+            <div class="eliminated-icon">⏱️</div>
+            <h2>Time's Up!</h2>
+            <p>You're out of time. Watch the rest of the game!</p>
+        </div>
+    </div>
+
+    <!-- Game Over Overlay -->
+    <div class="overlay gameover-overlay" id="gameover-overlay">
+        <div class="gameover-card">
+            <div class="confetti-container" id="confetti"></div>
+            <div class="gameover-content">
+                <div class="trophy">🏆</div>
+                <h2 class="winner-title" id="winner-title"></h2>
+                <p class="winner-time" id="winner-time"></p>
+
+                <div class="leaderboard" id="leaderboard">
+                    <!-- Populated by JS -->
+                </div>
+
+                <button class="btn btn-primary btn-play-again" id="btn-play-again">
+                    <span class="btn-icon">🔄</span>
+                    <span class="btn-text">Play Again</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const ROOM_CODE = '{{ room_code }}';
+    const USERNAME = '{{ username }}';
+</script>
+<script src="{% static 'game/js/game.js' %}"></script>
+{% endblock %}
