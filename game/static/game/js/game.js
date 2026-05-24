@@ -18,6 +18,78 @@
     let isEliminated = false;
     let isHunting = false;
     let pickTimerInterval = null;
+    let lastTickSecond = -1;
+
+    // --- Audio System ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+        if (!audioCtx) audioCtx = new AudioContext();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    function playTone(freq, type, duration, vol=0.05) {
+        if (!audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        } catch (e) { }
+    }
+
+    function playSound(name) {
+        initAudio();
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        switch(name) {
+            case 'start':
+                playTone(440, 'sine', 0.2, 0.05);
+                setTimeout(() => playTone(554, 'sine', 0.2, 0.05), 100);
+                setTimeout(() => playTone(659, 'sine', 0.4, 0.05), 200);
+                break;
+            case 'turn':
+                playTone(600, 'sine', 0.1, 0.05);
+                setTimeout(() => playTone(800, 'sine', 0.2, 0.05), 100);
+                break;
+            case 'tick':
+                playTone(1000, 'triangle', 0.05, 0.02);
+                break;
+            case 'round':
+                playTone(500, 'sine', 0.1, 0.05);
+                setTimeout(() => playTone(500, 'sine', 0.3, 0.05), 150);
+                break;
+            case 'eliminated':
+                try {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(100, now + 0.5);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.linearRampToValueAtTime(0.001, now + 0.5);
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    osc.start();
+                    osc.stop(now + 0.5);
+                } catch(e){}
+                break;
+            case 'gameover':
+                [523, 659, 784, 1046].forEach((f, i) => {
+                    setTimeout(() => playTone(f, 'square', 0.1, 0.03), i * 100);
+                });
+                break;
+        }
+    }
+
+    document.addEventListener('click', () => { if (!audioCtx) initAudio(); }, { once: true });
 
     // --- WebSocket Setup ---
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -205,9 +277,11 @@
 
     function startPickTimer(currentPicker) {
         stopPickTimer();
-        let timeLeft = 15;
+        let timeLeft = 20;
         const banner = document.getElementById('turn-banner');
         const text = document.getElementById('turn-text');
+
+        if (currentPicker === USERNAME) playSound('turn');
 
         const updateText = () => {
             if (currentPicker === USERNAME) {
@@ -222,6 +296,9 @@
 
         pickTimerInterval = setInterval(() => {
             timeLeft--;
+            if (timeLeft <= 5 && timeLeft > 0) {
+                if (currentPicker === USERNAME) playSound('tick');
+            }
             if (timeLeft <= 0) {
                 stopPickTimer();
                 if (currentPicker === USERNAME && !isEliminated) {
@@ -313,6 +390,7 @@
 
     // --- Hunt Start ---
     function handleHuntStart(data) {
+        playSound('start');
         // Hide popup
         document.getElementById('popup-overlay').classList.remove('visible');
 
@@ -388,6 +466,7 @@
         }
 
         if (data.username === USERNAME) {
+            playSound('eliminated');
             isEliminated = true;
             isHunting = false;
             const el = document.getElementById('eliminated-overlay');
@@ -415,6 +494,7 @@
 
     // --- New Turn ---
     function handleNewTurn(data) {
+        playSound('round');
         gameState = data;
         isHunting = false;
         stopTimer();
@@ -429,6 +509,7 @@
 
     // --- Game Over ---
     function handleGameOver(data) {
+        playSound('gameover');
         isHunting = false;
         stopTimer();
         stopPickTimer();
@@ -494,6 +575,12 @@
                     
                     // Decrement locally
                     p.time_bank = Math.max(0, p.time_bank - 0.1);
+                    
+                    let currentSecond = Math.ceil(p.time_bank);
+                    if (p.username === USERNAME && currentSecond <= 5 && currentSecond > 0 && currentSecond !== lastTickSecond) {
+                        playSound('tick');
+                        lastTickSecond = currentSecond;
+                    }
                     
                     const timeEl = document.querySelector(`.score-time[data-player="${escapeHtml(p.username)}"]`);
                     if (timeEl) {
