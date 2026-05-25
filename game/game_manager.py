@@ -93,7 +93,19 @@ class GameRoom:
     def remove_player(self, username):
         """Handle player disconnect."""
         if username in self.players:
-            self.players[username].is_connected = False
+            if self.state == LOBBY:
+                del self.players[username]
+                if username in self.player_order:
+                    self.player_order.remove(username)
+                
+                # If host leaves, assign to next joinee
+                if username == self.creator:
+                    if self.player_order:
+                        self.creator = self.player_order[0]
+                    else:
+                        self.creator = None
+            else:
+                self.players[username].is_connected = False
 
     def get_player_list(self):
         """Get ordered list of player dicts for the lobby/game."""

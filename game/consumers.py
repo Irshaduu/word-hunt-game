@@ -149,7 +149,30 @@ class GameConsumer(AsyncWebsocketConsumer):
         if hasattr(self, 'room_code') and self.room_code in ROOMS:
             room = ROOMS[self.room_code]
             if self.username in room.players:
-                room.players[self.username].is_connected = False
+                player = room.players[self.username]
+                player.is_connected = False
+
+                if not player.is_eliminated and room.state != GAME_OVER:
+                    player.is_eliminated = True
+                    player.time_bank = 0
+
+                    await self.channel_layer.group_send(
+                        self.group_name,
+                        {
+                            'type': 'player_eliminated',
+                            'username': self.username,
+                            'players': room.get_player_list(),
+                        }
+                    )
+
+                    is_over, winner = room.check_game_over()
+                    if is_over:
+                        await self.broadcast_game_over(room, winner)
+                    else:
+                        if room.state == PICKING and self.username == room.current_picker:
+                            await self.finish_round(room)
+                        elif room.state == HUNTING and room.check_round_complete():
+                            await self.finish_round(room)
 
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
@@ -179,7 +202,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             }))
             return
 
-        # Broadcast: word was picked — show popup to all for 3 seconds
+        # Broadcast: word was picked — show popup to all for 6 seconds
         await self.channel_layer.group_send(
             self.group_name,
             {
@@ -189,8 +212,12 @@ class GameConsumer(AsyncWebsocketConsumer):
             }
         )
 
-        # Wait 1.5 seconds (for others to see the popup), then start the hunt
-        await asyncio.sleep(1.5)
+        # Launch the countdown in the background so it doesn't block the picker's socket
+        asyncio.ensure_future(self._wait_and_start_hunt(room))
+
+    async def _wait_and_start_hunt(self, room):
+        # Wait 6.0 seconds for the popup
+        await asyncio.sleep(6.0)
 
         # Transition to hunting phase
         room.start_hunt()

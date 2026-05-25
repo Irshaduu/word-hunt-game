@@ -51,20 +51,26 @@
         const now = audioCtx.currentTime;
         switch(name) {
             case 'start':
-                playTone(440, 'sine', 0.2, 0.05);
-                setTimeout(() => playTone(554, 'sine', 0.2, 0.05), 100);
-                setTimeout(() => playTone(659, 'sine', 0.4, 0.05), 200);
+                // Energetic startup sweep
+                [440, 494, 554, 659, 740, 880].forEach((freq, i) => {
+                    setTimeout(() => playTone(freq, 'sine', 0.15, 0.25), i * 50);
+                });
+                setTimeout(() => playTone(1108, 'square', 0.4, 0.15), 300);
                 break;
             case 'turn':
-                playTone(600, 'sine', 0.1, 0.05);
-                setTimeout(() => playTone(800, 'sine', 0.2, 0.05), 100);
+                playTone(600, 'sine', 0.1, 0.2);
+                setTimeout(() => playTone(800, 'sine', 0.2, 0.2), 100);
                 break;
             case 'tick':
-                playTone(1000, 'triangle', 0.05, 0.02);
+                playTone(1000, 'triangle', 0.05, 0.1);
+                break;
+            case 'showing':
+                playTone(800, 'sine', 0.1, 0.2);
+                setTimeout(() => playTone(1200, 'sine', 0.2, 0.2), 150);
                 break;
             case 'round':
-                playTone(500, 'sine', 0.1, 0.05);
-                setTimeout(() => playTone(500, 'sine', 0.3, 0.05), 150);
+                playTone(500, 'sine', 0.1, 0.2);
+                setTimeout(() => playTone(500, 'sine', 0.3, 0.2), 150);
                 break;
             case 'eliminated':
                 try {
@@ -73,7 +79,7 @@
                     osc.type = 'triangle';
                     osc.frequency.setValueAtTime(300, now);
                     osc.frequency.exponentialRampToValueAtTime(100, now + 0.5);
-                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.setValueAtTime(0.2, now);
                     gain.gain.linearRampToValueAtTime(0.001, now + 0.5);
                     osc.connect(gain);
                     gain.connect(audioCtx.destination);
@@ -83,7 +89,7 @@
                 break;
             case 'gameover':
                 [523, 659, 784, 1046].forEach((f, i) => {
-                    setTimeout(() => playTone(f, 'square', 0.1, 0.03), i * 100);
+                    setTimeout(() => playTone(f, 'square', 0.1, 0.15), i * 100);
                 });
                 break;
         }
@@ -246,33 +252,68 @@
         });
     }
 
+    let showingTimerInterval = null;
+
+    function stopShowingTimer() {
+        if (showingTimerInterval) {
+            clearInterval(showingTimerInterval);
+            showingTimerInterval = null;
+        }
+    }
+
     // --- Turn Banner ---
     function updateTurnBanner(currentPicker, state) {
         const banner = document.getElementById('turn-banner');
         const text = document.getElementById('turn-text');
         banner.className = 'turn-banner';
 
+        stopPickTimer();
+        stopShowingTimer();
+
         if (state === 'picking') {
             startPickTimer(currentPicker);
-        } else {
-            stopPickTimer();
-            if (state === 'hunting') {
-                if (currentPicker === USERNAME) {
-                    text.textContent = '😎 You picked the word. Sit back and watch!';
-                } else if (isEliminated) {
-                    text.textContent = '👀 Watching...';
-                } else {
-                    banner.classList.add('hunting');
-                    text.textContent = '🔍 FIND THE WORD! Quick!';
-                }
-            } else if (state === 'showing') {
-                text.textContent = '👀 Remember this word...';
-            } else if (state === 'round_end') {
-                text.textContent = '✨ Round over! Next turn coming...';
+        } else if (state === 'hunting') {
+            if (currentPicker === USERNAME) {
+                text.textContent = '😎 You picked the word. Sit back and watch!';
+            } else if (isEliminated) {
+                text.textContent = '👀 Watching...';
             } else {
-                text.textContent = '';
+                banner.classList.add('hunting');
+                text.textContent = '🔍 FIND THE WORD! Quick!';
             }
+        } else if (state === 'showing') {
+            startShowingTimer(currentPicker);
+        } else if (state === 'round_end') {
+            text.textContent = '✨ Round over! Next turn coming...';
+        } else {
+            text.textContent = '';
         }
+    }
+
+    function startShowingTimer(currentPicker) {
+        stopShowingTimer();
+        let timeLeft = 6;
+        const banner = document.getElementById('turn-banner');
+        const text = document.getElementById('turn-text');
+        
+        const updateText = () => {
+            if (currentPicker === USERNAME) {
+                text.textContent = `😎 You picked the word. Sit back and watch! (${timeLeft}s)`;
+            } else {
+                text.textContent = `👀 Remember this word... (${timeLeft}s)`;
+            }
+        };
+        
+        updateText();
+        
+        showingTimerInterval = setInterval(() => {
+            timeLeft--;
+            if (timeLeft <= 0) {
+                stopShowingTimer();
+            } else {
+                updateText();
+            }
+        }, 1000);
     }
 
     function startPickTimer(currentPicker) {
@@ -296,8 +337,9 @@
 
         pickTimerInterval = setInterval(() => {
             timeLeft--;
-            if (timeLeft <= 5 && timeLeft > 0) {
-                if (currentPicker === USERNAME) playSound('tick');
+            if (timeLeft <= 5 && timeLeft > 0 && timeLeft !== lastTickSecond) {
+                playSound('tick');
+                lastTickSecond = timeLeft;
             }
             if (timeLeft <= 0) {
                 stopPickTimer();
@@ -348,44 +390,39 @@
         }
     }
 
-    // --- Word Picked (3-second popup) ---
+    // --- Word Picked (6-second popup) ---
     function handleWordPicked(data) {
+        playSound('showing');
         if (gameState) {
             gameState.state = 'showing';
             gameState.chosen_word = data.word;
         }
 
-        // Picker doesn't see the popup (they already know the word)
+        updateTurnBanner(data.picker, 'showing');
+        document.querySelectorAll('.arena-word').forEach(w => w.classList.add('disabled'));
+
+        // If picker, highlight the picked word on their board underneath
         if (data.picker === USERNAME) {
-            updateTurnBanner(data.picker, 'showing');
-            document.querySelectorAll('.arena-word').forEach(w => w.classList.add('disabled'));
-            // Highlight the picked word on the picker's board
             document.querySelectorAll('.arena-word').forEach(el => {
                 if (el.dataset.word === data.word) {
                     el.style.outline = '2px solid rgba(251,191,36,0.6)';
                     el.style.borderRadius = '8px';
                 }
             });
-            return;
         }
 
-        // Other players see the popup
+        // Show the popup overlay to ALL players (including picker)
         const overlay = document.getElementById('popup-overlay');
-        document.getElementById('popup-picker').textContent = data.picker;
+        document.getElementById('popup-picker').textContent = data.picker === USERNAME ? "You" : data.picker;
         document.getElementById('popup-word').textContent = data.word;
 
         // Reset and restart the timer bar animation
         const fill = document.getElementById('popup-timer-fill');
         fill.style.animation = 'none';
         fill.offsetHeight; // force reflow
-        fill.style.animation = 'shrink 1.5s linear forwards';
+        fill.style.animation = 'shrink 6s linear forwards';
 
         overlay.classList.add('visible');
-
-        updateTurnBanner(data.picker, 'showing');
-
-        // Disable word clicks during popup
-        document.querySelectorAll('.arena-word').forEach(w => w.classList.add('disabled'));
     }
 
     // --- Hunt Start ---
@@ -568,6 +605,7 @@
 
             // Sync all players' timers locally
             if (gameState && gameState.players) {
+                let minTime = null;
                 gameState.players.forEach(p => {
                     // Skip the current picker, eliminated players, and those who already found it
                     if (p.username === gameState.current_picker) return;
@@ -575,12 +613,7 @@
                     
                     // Decrement locally
                     p.time_bank = Math.max(0, p.time_bank - 0.1);
-                    
-                    let currentSecond = Math.ceil(p.time_bank);
-                    if (p.username === USERNAME && currentSecond <= 5 && currentSecond > 0 && currentSecond !== lastTickSecond) {
-                        playSound('tick');
-                        lastTickSecond = currentSecond;
-                    }
+                    if (minTime === null || p.time_bank < minTime) minTime = p.time_bank;
                     
                     const timeEl = document.querySelector(`.score-time[data-player="${escapeHtml(p.username)}"]`);
                     if (timeEl) {
@@ -590,6 +623,14 @@
                         else if (p.time_bank <= 30) timeEl.classList.add('time-low');
                     }
                 });
+                
+                if (minTime !== null) {
+                    let currentSecond = Math.ceil(minTime);
+                    if (currentSecond <= 5 && currentSecond > 0 && currentSecond !== lastTickSecond) {
+                        playSound('tick');
+                        lastTickSecond = currentSecond;
+                    }
+                }
             }
         }, 100);
     }

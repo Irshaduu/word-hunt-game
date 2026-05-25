@@ -6,6 +6,9 @@
 {% block content %}
 <div class="landing-bg">
     <div class="lobby-container">
+        <a href="/" class="btn-exit-lobby" title="Leave Room">
+            <i class="ph-duotone ph-sign-out"></i> Leave
+        </a>
         <div class="lobby-header">
             <h1 class="logo-title logo-title-sm">Word Hunt</h1>
             <p class="logo-subtitle">Waiting for players...</p>
@@ -31,20 +34,22 @@
             </div>
         </div>
 
-        {% if is_creator %}
-        <button class="btn btn-primary btn-start" id="btn-start" disabled>
-            <span class="btn-icon"><i class="ph-duotone ph-rocket-launch" style="color: #FFF; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i></span>
-            <span class="btn-text">Start Game</span>
-            <span class="btn-note" id="btn-start-note">Need at least 2 players</span>
-        </button>
-        {% else %}
-        <div class="waiting-message">
+        <!-- Start action wrapper (hidden for non-hosts initially) -->
+        <div class="start-action-wrapper" id="start-action-wrapper" style="width: 100%; max-width: 400px; display: {% if is_creator %}flex{% else %}none{% endif %}; flex-direction: column; align-items: center;">
+            <button class="btn btn-primary btn-start" id="btn-start" disabled>
+                <i class="ph-duotone ph-rocket-launch" style="font-size: 1.4rem; margin-right: 8px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); color: white;"></i>
+                Start Game
+            </button>
+            <div class="btn-note" id="btn-start-note" style="margin-top: 12px; color: var(--text-secondary); font-size: 0.9rem;">Need at least 2 players</div>
+        </div>
+
+        <!-- Waiting message (hidden for hosts initially) -->
+        <div class="waiting-message" id="waiting-message" style="display: {% if is_creator %}none{% else %}block{% endif %};">
             <div class="waiting-dots">
                 <span></span><span></span><span></span>
             </div>
             <p>Waiting for the host to start the game...</p>
         </div>
-        {% endif %}
     </div>
 </div>
 
@@ -53,5 +58,5 @@
     const USERNAME = '{{ username }}';
     const IS_CREATOR = {{ is_creator|yesno:"true,false" }};
 </script>
-<script src="{% static 'game/js/lobby.js' %}"></script>
+<script src="{% static 'game/js/lobby.js' %}?v=2"></script>
 {% endblock %}

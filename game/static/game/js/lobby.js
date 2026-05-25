@@ -15,6 +15,57 @@
         'rgba(45,212,191,0.2)',
     ];
 
+    // --- Audio System ---
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function initAudio() {
+        if (!audioCtx) audioCtx = new AudioContext();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+
+    document.addEventListener('click', () => { if (!audioCtx) initAudio(); }, { once: true });
+
+    function playEpicStartSound() {
+        initAudio();
+        if (!audioCtx) return;
+        const now = audioCtx.currentTime;
+        try {
+            // Epic rising chord
+            const freqs = [261.63, 329.63, 392.00, 523.25]; // C major chord
+            freqs.forEach((freq, i) => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(freq, now + i * 0.1);
+                // pitch bend up
+                osc.frequency.exponentialRampToValueAtTime(freq * 2, now + 2.0);
+                
+                gain.gain.setValueAtTime(0, now + i * 0.1);
+                gain.gain.linearRampToValueAtTime(0.15, now + i * 0.1 + 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 2.5);
+                
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start(now + i * 0.1);
+                osc.stop(now + 2.5);
+            });
+            
+            // Bass drop sweep
+            const bass = audioCtx.createOscillator();
+            const bassGain = audioCtx.createGain();
+            bass.type = 'sawtooth';
+            bass.frequency.setValueAtTime(150, now);
+            bass.frequency.exponentialRampToValueAtTime(40, now + 2.0);
+            bassGain.gain.setValueAtTime(0.3, now);
+            bassGain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+            bass.connect(bassGain);
+            bassGain.connect(audioCtx.destination);
+            bass.start(now);
+            bass.stop(now + 2.0);
+        } catch(e) {}
+    }
+
     // --- WebSocket Setup ---
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${wsProtocol}//${window.location.host}/ws/lobby/${ROOM_CODE}/?username=${encodeURIComponent(USERNAME)}`;
@@ -56,7 +107,17 @@
                 updatePlayerList(data.players, data.creator);
                 break;
             case 'game_starting':
-                navigateToGame();
+                // Show visual feedback that it's starting
+                const btn = document.getElementById('btn-start');
+                if (btn) {
+                    btn.innerHTML = '<i class="ph-duotone ph-rocket-launch" style="font-size: 1.4rem; margin-right: 8px;"></i> Starting...';
+                    btn.disabled = true;
+                }
+                const msg = document.querySelector('.waiting-message p');
+                if (msg) msg.textContent = 'Game is starting! Get ready...';
+                
+                playEpicStartSound();
+                setTimeout(navigateToGame, 2500);
                 break;
             case 'error':
                 showError(data.message);
@@ -81,6 +142,7 @@
     function updatePlayerList(players, creator) {
         const listEl = document.getElementById('player-list');
         const countEl = document.getElementById('player-count');
+        const isHostNow = (USERNAME === creator);
 
         countEl.textContent = `(${players.length}/5)`;
 
@@ -107,17 +169,28 @@
             listEl.appendChild(item);
         });
 
-        // Update start button state
-        if (IS_CREATOR) {
+        // Update host UI dynamically
+        const startWrapper = document.getElementById('start-action-wrapper');
+        const waitingMsg = document.getElementById('waiting-message');
+        
+        if (isHostNow) {
+            if (startWrapper) startWrapper.style.display = 'flex';
+            if (waitingMsg) waitingMsg.style.display = 'none';
+            
             const startBtn = document.getElementById('btn-start');
             const noteEl = document.getElementById('btn-start-note');
-            if (players.length >= 2) {
-                startBtn.disabled = false;
-                noteEl.textContent = `${players.length} players ready!`;
-            } else {
-                startBtn.disabled = true;
-                noteEl.textContent = 'Need at least 2 players';
+            if (startBtn && noteEl) {
+                if (players.length >= 2) {
+                    startBtn.disabled = false;
+                    noteEl.textContent = `${players.length} players ready!`;
+                } else {
+                    startBtn.disabled = true;
+                    noteEl.textContent = 'Need at least 2 players';
+                }
             }
+        } else {
+            if (startWrapper) startWrapper.style.display = 'none';
+            if (waitingMsg) waitingMsg.style.display = 'block';
         }
     }
 
@@ -138,8 +211,9 @@
     // --- Event Listeners ---
 
     // Start Game button
-    if (IS_CREATOR) {
-        document.getElementById('btn-start').addEventListener('click', () => {
+    const btnStart = document.getElementById('btn-start');
+    if (btnStart) {
+        btnStart.addEventListener('click', () => {
             if (ws && ws.readyState === WebSocket.OPEN) {
                 ws.send(JSON.stringify({ type: 'start_game' }));
             }
@@ -148,22 +222,32 @@
 
     // Copy room code
     document.getElementById('btn-copy').addEventListener('click', () => {
-        navigator.clipboard.writeText(ROOM_CODE).then(() => {
+        function success() {
             const btn = document.getElementById('btn-copy');
-            btn.textContent = '✅ Copied!';
-            setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000);
-        }).catch(() => {
-            // Fallback
+            btn.innerHTML = '✅ Copied!';
+            setTimeout(() => { btn.innerHTML = '<i class="ph-duotone ph-copy"></i> Copy'; }, 2000);
+        }
+
+        function fallback() {
             const textarea = document.createElement('textarea');
             textarea.value = ROOM_CODE;
+            textarea.style.position = 'fixed';
             document.body.appendChild(textarea);
             textarea.select();
-            document.execCommand('copy');
+            try {
+                document.execCommand('copy');
+                success();
+            } catch (err) {
+                alert("Failed to copy code: " + ROOM_CODE);
+            }
             document.body.removeChild(textarea);
-            const btn = document.getElementById('btn-copy');
-            btn.textContent = '✅ Copied!';
-            setTimeout(() => { btn.textContent = '📋 Copy'; }, 2000);
-        });
+        }
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(ROOM_CODE).then(success).catch(fallback);
+        } else {
+            fallback();
+        }
     });
 
     // --- Initialize ---
