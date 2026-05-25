@@ -88,9 +88,21 @@
                 } catch(e){}
                 break;
             case 'gameover':
-                [523, 659, 784, 1046].forEach((f, i) => {
-                    setTimeout(() => playTone(f, 'square', 0.1, 0.15), i * 100);
+                // Triumphant Victory Fanfare
+                // Deep bass foundation
+                playTone(130.81, 'sawtooth', 2.0, 0.15); 
+                
+                // Rapid sparkling arpeggio upwards (C major)
+                [261.63, 329.63, 392.00, 523.25, 659.25, 783.99].forEach((freq, i) => {
+                    setTimeout(() => playTone(freq, 'sine', 1.5, 0.1), i * 60);
                 });
+                
+                // Massive final chord rings out
+                setTimeout(() => {
+                    [523.25, 659.25, 783.99, 1046.50].forEach(freq => {
+                        playTone(freq, 'triangle', 2.5, 0.15);
+                    });
+                }, 400);
                 break;
         }
     }
@@ -276,13 +288,14 @@
         if (state === 'picking') {
             startPickTimer(currentPicker);
         } else if (state === 'hunting') {
+            const wordDisplay = gameState && gameState.chosen_word ? `'${gameState.chosen_word.toUpperCase()}'` : 'the word';
             if (currentPicker === USERNAME) {
-                text.textContent = '😎 You picked the word. Sit back and watch!';
+                text.textContent = `😎 You picked ${wordDisplay}. Sit back and watch!`;
             } else if (isEliminated) {
                 text.textContent = '👀 Watching...';
             } else {
                 banner.classList.add('hunting');
-                text.textContent = '🔍 FIND THE WORD! Quick!';
+                text.textContent = `🔍 FIND ${wordDisplay}! Quick!`;
             }
         } else if (state === 'showing') {
             startShowingTimer(currentPicker);
@@ -300,10 +313,11 @@
         const text = document.getElementById('turn-text');
         
         const updateText = () => {
+            const wordDisplay = gameState && gameState.chosen_word ? `'${gameState.chosen_word.toUpperCase()}'` : 'the word';
             if (currentPicker === USERNAME) {
-                text.textContent = `😎 You picked the word. Sit back and watch! (${timeLeft}s)`;
+                text.textContent = `😎 You picked ${wordDisplay}. Sit back and watch! (${timeLeft}s)`;
             } else {
-                text.textContent = `👀 Remember this word... (${timeLeft}s)`;
+                text.textContent = `👀 Remember ${wordDisplay}... (${timeLeft}s)`;
             }
         };
         
@@ -322,10 +336,14 @@
     function startPickTimer(currentPicker) {
         stopPickTimer();
         let timeLeft = 20;
+        if (gameState && gameState.pick_start_time) {
+            const elapsed = (Date.now() / 1000) - gameState.pick_start_time;
+            timeLeft = Math.max(0, Math.floor(20 - elapsed));
+        }
         const banner = document.getElementById('turn-banner');
         const text = document.getElementById('turn-text');
 
-        if (currentPicker === USERNAME) playSound('turn');
+        if (currentPicker === USERNAME && timeLeft === 20) playSound('turn');
 
         const updateText = () => {
             if (currentPicker === USERNAME) {

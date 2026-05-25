@@ -74,6 +74,7 @@ class GameRoom:
         self.current_picker = None   # Username of current picker
         self.state = LOBBY
         self.show_start_time = None  # When the 3-sec popup started
+        self.pick_start_time = None  # When picking phase started
 
     def add_player(self, username):
         """Add a player to the room. Returns (success, error_msg)."""
@@ -134,6 +135,7 @@ class GameRoom:
         self.current_turn_index = 0
         self.current_picker = self.turn_order[0]
         self.state = PICKING
+        self.pick_start_time = time.time()
 
         return True, None
 
@@ -279,6 +281,7 @@ class GameRoom:
         self.chosen_word = None
         self.board = get_random_board(45)
         self.state = PICKING
+        self.pick_start_time = time.time()
 
         return next_picker
 
@@ -293,6 +296,7 @@ class GameRoom:
             'board': self.board,
             'room_code': self.room_code,
             'creator': self.creator,
+            'pick_start_time': self.pick_start_time,
         }
 
     def get_leaderboard(self):
