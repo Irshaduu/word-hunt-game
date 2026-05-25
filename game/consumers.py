@@ -189,6 +189,12 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self.handle_pick_word(room, data)
         elif msg_type == 'found_word':
             await self.handle_found_word(room, data)
+        elif msg_type == 'play_again':
+            if hasattr(room, 'reset_to_lobby'):
+                room.reset_to_lobby(self.username)
+            await self.send(text_data=json.dumps({
+                'type': 'redirect_to_lobby'
+            }))
 
     async def handle_pick_word(self, room, data):
         """Handle a player picking a word from the board."""

@@ -77,6 +77,9 @@ class GameRoom:
 
     def add_player(self, username):
         """Add a player to the room. Returns (success, error_msg)."""
+        if self.state == GAME_OVER:
+            self.reset_to_lobby(username)
+
         if len(self.players) >= 5:
             return False, "Room is full (max 5 players)"
         if username in self.players:
@@ -307,3 +310,16 @@ class GameRoom:
             }
             for p in players
         ]
+
+    def reset_to_lobby(self, username):
+        """Reset the room from GAME_OVER back to LOBBY state."""
+        if self.state != LOBBY:
+            self.state = LOBBY
+            self.players = {}
+            self.player_order = []
+            self.creator = username
+            self.board = []
+            self.chosen_word = None
+            self.current_picker = None
+            self.turn_order = []
+            self.current_turn_index = 0

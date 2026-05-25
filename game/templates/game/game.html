@@ -70,10 +70,16 @@
                     <!-- Populated by JS -->
                 </div>
 
-                <button class="btn btn-primary btn-play-again" id="btn-play-again">
-                    <span class="btn-icon"><i class="ph-duotone ph-arrows-clockwise" style="color: #FFF; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i></span>
-                    <span class="btn-text">Play Again</span>
-                </button>
+                <div class="gameover-actions" style="display: flex; gap: 12px; margin-top: 24px; width: 100%; max-width: 400px; margin-left: auto; margin-right: auto;">
+                    <button class="btn btn-secondary btn-exit-home" id="btn-exit-home" style="flex: 1; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.1); color: white;">
+                        <span class="btn-icon"><i class="ph-duotone ph-house"></i></span>
+                        <span class="btn-text">Home</span>
+                    </button>
+                    <button class="btn btn-primary btn-play-again" id="btn-play-again" style="flex: 2;">
+                        <span class="btn-icon"><i class="ph-duotone ph-arrows-clockwise" style="color: #FFF; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i></span>
+                        <span class="btn-text">Play Again</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

@@ -161,6 +161,9 @@
             case 'game_over':
                 handleGameOver(data);
                 break;
+            case 'redirect_to_lobby':
+                window.location.href = `/lobby/${ROOM_CODE}/`;
+                break;
             case 'error':
                 console.warn('Server error:', data.message);
                 break;
@@ -698,10 +701,22 @@
         return div.innerHTML;
     }
 
-    // --- Play Again ---
-    document.getElementById('btn-play-again').addEventListener('click', () => {
-        window.location.href = '/';
-    });
+    // --- Play Again & Home ---
+    const btnHome = document.getElementById('btn-exit-home');
+    if (btnHome) {
+        btnHome.addEventListener('click', () => {
+            window.location.href = '/';
+        });
+    }
+
+    const btnPlayAgain = document.getElementById('btn-play-again');
+    if (btnPlayAgain) {
+        btnPlayAgain.addEventListener('click', () => {
+            send({ type: 'play_again' });
+            btnPlayAgain.innerHTML = '<span class="btn-icon"><i class="ph-duotone ph-spinner-gap ph-spin" style="color: #FFF;"></i></span><span class="btn-text">Gathering...</span>';
+            btnPlayAgain.disabled = true;
+        });
+    }
 
     // --- Initialize ---
     connect();

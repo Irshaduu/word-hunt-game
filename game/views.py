@@ -105,7 +105,7 @@ def join_room(request, room_code):
         return redirect('landing')
 
     room = ROOMS[room_code]
-    if room.state != 'lobby':
+    if room.state != 'lobby' and room.state != 'game_over':
         # Allow reconnection to in-progress game
         if username in room.players:
             return redirect('game_view', room_code=room_code)
