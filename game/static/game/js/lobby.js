@@ -127,7 +127,22 @@
 
     // --- UI Updates ---
 
+    const SPECIAL_AVATARS = {
+        "Soo": { emoji: "🐼", color: "rgba(52,211,153,0.2)" },
+        "Chanie": { emoji: "🐼", color: "rgba(52,211,153,0.2)" },
+        "Soochan": { emoji: "🐼", color: "rgba(52,211,153,0.2)" },
+        "Mile": { emoji: "🐱", color: "rgba(255,107,157,0.2)" },
+        "Kamila": { emoji: "🐱", color: "rgba(255,107,157,0.2)" },
+        "Poocha": { emoji: "🐱", color: "rgba(255,107,157,0.2)" }
+    };
+
     function getAvatarForName(name) {
+        for (const [key, avatar] of Object.entries(SPECIAL_AVATARS)) {
+            if (name.startsWith(key)) {
+                return avatar;
+            }
+        }
+
         let hash = 0;
         for (let i = 0; i < name.length; i++) {
             hash = ((hash << 5) - hash + name.charCodeAt(i)) | 0;

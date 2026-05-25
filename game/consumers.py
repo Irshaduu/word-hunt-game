@@ -415,20 +415,36 @@ class GameConsumer(AsyncWebsocketConsumer):
         if winner and winner in room.players:
             winner_time = round(room.players[winner].time_bank, 1)
 
-            # Increment total_earned_seconds in DB
+            # Update stats in DB
             from channels.db import database_sync_to_async
             from django.contrib.auth.models import User
             
             @database_sync_to_async
-            def update_winner_stats(username, time_left):
-                try:
-                    user = User.objects.get(username=username)
-                    user.profile.total_earned_seconds += int(time_left)
-                    user.profile.save()
-                except (User.DoesNotExist, Exception):
-                    pass
+            def update_leaderboard_stats(leaderboard_data):
+                for idx, entry in enumerate(leaderboard_data):
+                    try:
+                        user = User.objects.get(username=entry['username'])
+                        
+                        # Add any remaining time (only winner will likely have time left)
+                        if entry['time_bank'] > 0:
+                            user.profile.total_earned_seconds += int(entry['time_bank'])
+
+                        if idx == 0:
+                            user.profile.first_places += 1
+                        elif idx == 1:
+                            user.profile.second_places += 1
+                        elif idx == 2:
+                            user.profile.third_places += 1
+                        elif idx == 3:
+                            user.profile.fourth_places += 1
+                        elif idx == 4:
+                            user.profile.fifth_places += 1
+                        
+                        user.profile.save()
+                    except Exception:
+                        pass
             
-            await update_winner_stats(winner, winner_time)
+            await update_leaderboard_stats(room.get_leaderboard())
 
         await self.channel_layer.group_send(
             self.group_name,

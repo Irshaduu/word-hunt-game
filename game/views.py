@@ -29,8 +29,14 @@ def landing(request):
                     return redirect('join_room', room_code=room_code)
         
         # Pass profile data
+        profile = request.user.profile
         context['username'] = request.user.username
-        context['total_earned_seconds'] = request.user.profile.total_earned_seconds
+        context['total_earned_seconds'] = profile.total_earned_seconds
+        context['first_places'] = profile.first_places
+        context['second_places'] = profile.second_places
+        context['third_places'] = profile.third_places
+        context['fourth_places'] = profile.fourth_places
+        context['fifth_places'] = profile.fifth_places
         return render(request, 'game/landing_auth.html', context)
     else:
         # Guest, show login/register

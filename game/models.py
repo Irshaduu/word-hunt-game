@@ -6,6 +6,11 @@ from django.dispatch import receiver
 class PlayerProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     total_earned_seconds = models.IntegerField(default=0)
+    first_places = models.IntegerField(default=0)
+    second_places = models.IntegerField(default=0)
+    third_places = models.IntegerField(default=0)
+    fourth_places = models.IntegerField(default=0)
+    fifth_places = models.IntegerField(default=0)
 
     def __str__(self):
         return f"{self.user.username}'s Profile"
