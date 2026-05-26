@@ -61,12 +61,16 @@
             <img src="{% static 'game/icons/icon-512x512.png' %}" alt="App Icon" style="width: 48px; height: 48px; border-radius: 12px;">
             <div>
                 <h4 style="margin: 0; color: white; font-family: var(--font-display); font-size: 1.1rem;">Word Hunt</h4>
-                <p style="margin: 0; color: var(--text-muted); font-size: 0.8rem;">Install App for better experience</p>
+                <p id="pwa-prompt-text" style="margin: 0; color: var(--text-muted); font-size: 0.8rem;">Install as App Now ✔️</p>
             </div>
         </div>
-        <div style="display: flex; flex-direction: column; gap: 6px;">
+        <div id="pwa-action-btns" style="display: flex; flex-direction: column; gap: 6px;">
             <button id="pwa-install-btn" style="background: var(--accent-cyan); color: #000; border: none; padding: 6px 12px; border-radius: 8px; font-weight: bold; font-family: var(--font-display); cursor: pointer;">Install</button>
             <button id="pwa-later-btn" style="background: transparent; color: var(--text-muted); border: none; padding: 4px; font-size: 0.75rem; cursor: pointer;">Later</button>
+        </div>
+        <div id="pwa-funny-btns" style="display: none; flex-direction: column; gap: 6px;">
+            <button id="pwa-yes-btn" style="background: var(--accent-cyan); color: #000; border: none; padding: 6px 12px; border-radius: 8px; font-weight: bold; font-family: var(--font-display); cursor: pointer;">Yes</button>
+            <button id="pwa-no-btn" style="background: transparent; color: var(--text-muted); border: none; padding: 4px; font-size: 0.75rem; cursor: pointer;">NO</button>
         </div>
     </div>
 
@@ -76,6 +80,11 @@
         const installPrompt = document.getElementById('pwa-install-prompt');
         const installBtn = document.getElementById('pwa-install-btn');
         const laterBtn = document.getElementById('pwa-later-btn');
+        const pwaPromptText = document.getElementById('pwa-prompt-text');
+        const pwaActionBtns = document.getElementById('pwa-action-btns');
+        const pwaFunnyBtns = document.getElementById('pwa-funny-btns');
+        const yesBtn = document.getElementById('pwa-yes-btn');
+        const noBtn = document.getElementById('pwa-no-btn');
 
         window.addEventListener('beforeinstallprompt', (e) => {
             // Prevent Chrome from automatically showing the default prompt
@@ -115,10 +124,39 @@
         });
 
         laterBtn.addEventListener('click', () => {
+            pwaPromptText.innerHTML = "What if you die later?<br>Install as App Now please 🥹";
+            pwaActionBtns.style.display = 'none';
+            pwaFunnyBtns.style.display = 'flex';
+        });
+
+        yesBtn.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                deferredPrompt = null;
+            } else {
+                alert("App installation will trigger on a secure connection!");
+            }
+            installPrompt.style.bottom = '-100px';
+            installPrompt.style.opacity = '0';
+            setTimeout(() => {
+                pwaPromptText.innerHTML = "Install as App Now ✔️";
+                pwaActionBtns.style.display = 'flex';
+                pwaFunnyBtns.style.display = 'none';
+            }, 500);
+        });
+
+        noBtn.addEventListener('click', () => {
             installPrompt.style.bottom = '-100px';
             installPrompt.style.opacity = '0';
             // Save preference with a timestamp
             localStorage.setItem('pwa-install-later-time', Date.now().toString());
+            // Reset state for next time
+            setTimeout(() => {
+                pwaPromptText.innerHTML = "Install as App Now ✔️";
+                pwaActionBtns.style.display = 'flex';
+                pwaFunnyBtns.style.display = 'none';
+            }, 500);
         });
         
         window.addEventListener('appinstalled', () => {
