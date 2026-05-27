@@ -834,10 +834,10 @@ html, body {
     position: relative;
     width: 100%;
     height: 750px;
-    background: radial-gradient(circle at center, rgba(40, 40, 60, 0.6) 0%, rgba(10, 10, 20, 0.9) 100%);
+    background: #101018; /* Solid dark background to prevent repaint lags on scroll */
     border-radius: var(--radius-lg);
     border: 1px solid rgba(255, 255, 255, 0.06);
-    box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5), 0 10px 30px rgba(0, 0, 0, 0.3);
+    /* box-shadow removed for mobile scroll performance */
     overflow: hidden;
 }
 

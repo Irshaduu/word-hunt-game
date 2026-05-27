@@ -141,7 +141,7 @@ class GameRoom:
         random.shuffle(self.turn_order)
 
         # Generate the board
-        self.board = get_random_board(42)
+        self.board = get_random_board()
 
         # Set first picker
         self.current_turn_index = 0
@@ -292,7 +292,7 @@ class GameRoom:
 
         self.current_picker = next_picker
         self.chosen_word = None
-        self.board = get_random_board(42)
+        self.board = get_random_board()
         self.state = PICKING
         self.pick_start_time = time.time()
 

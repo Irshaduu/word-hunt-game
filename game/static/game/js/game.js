@@ -261,7 +261,8 @@
                 font-size: ${item.fontSize}px;
                 color: ${item.color};
                 font-family: ${item.font || "'Fredoka', cursive"};
-                transform: rotate(${item.rotation}deg);
+                transform: translate(-50%, -50%) rotate(${item.rotation}deg) translateZ(0);
+                will-change: transform;
             `;
 
             el.addEventListener('click', () => onWordClick(item.word));

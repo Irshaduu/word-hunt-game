@@ -233,48 +233,68 @@ WORD_FONTS = [
 ]
 
 
-def get_random_board(n=42):
+def get_random_board(n=71):
     """
-    Generate a board of n random words placed on a grid with jitter.
-    Words get their own cell so they don't overlap.
+    Generate a board of n random words.
+    Uses an interlocking 4-3 row layout (brick pattern) to maximize space 
+    efficiency, eliminate gaps, and prevent overlapping on mobile screens,
+    while using jitter and shuffle to keep it looking chaotic.
     """
     words = random.sample(WORD_LIST, min(n, len(WORD_LIST)))
 
-    # Calculate grid dimensions to fit n words
-    cols = 3
-    rows = (len(words) + cols - 1) // cols  # ceiling division
-
-    # Cell size in percentage — tighter spacing
-    cell_w = 98.0 / cols
-    cell_h = 98.0 / rows
-
-    # Create shuffled grid positions
+    # Calculate total rows needed for a 4-3 alternating grid
+    pair_count = len(words) // 7
+    remainder = len(words) % 7
+    
+    total_rows = pair_count * 2
+    if remainder > 0:
+        total_rows += 1
+    if remainder > 4:
+        total_rows += 1
+        
+    y_step = 90.0 / max(1, total_rows)
+    
     positions = []
-    for r in range(rows):
-        for c in range(cols):
-            positions.append((r, c))
+    row = 0
+    words_placed = 0
+    
+    while words_placed < len(words):
+        # Alternate between 4 columns and 3 columns to interlock the words
+        if row % 2 == 0:
+            centers_x = [18.0, 39.0, 61.0, 82.0]
+        else:
+            centers_x = [28.0, 50.0, 72.0]
+            
+        base_y = 5.0 + (row * y_step) + (y_step / 2.0)
+        
+        for base_x in centers_x:
+            if words_placed >= len(words):
+                break
+                
+            # Controlled jitter to make it look messy but safe from collisions
+            jitter_x = random.uniform(-4.0, 4.0)
+            jitter_y = random.uniform(-y_step * 0.3, y_step * 0.3)
+            
+            positions.append((base_x + jitter_x, base_y + jitter_y))
+            words_placed += 1
+            
+        row += 1
+
+    # Shuffle the positions so big/small words don't form predictable patterns
     random.shuffle(positions)
 
     board = []
     for i, word in enumerate(words):
-        row, col = positions[i]
-
-        # Base position for this cell
-        base_x = 1 + col * cell_w
-        base_y = 0.5 + row * cell_h
-
-        # Random jitter within cell
-        jitter_x = random.uniform(0, cell_w * 0.12)
-        jitter_y = random.uniform(0, cell_h * 0.2)
-
+        x, y = positions[i]
+        
         board.append({
             "word": word,
-            "fontSize": random.randint(13, 20),
+            "fontSize": random.randint(14, 23),
             "color": random.choice(WORD_COLORS),
             "font": random.choice(WORD_FONTS),
-            "rotation": random.randint(-12, 12),
-            "x": round(base_x + jitter_x, 1),
-            "y": round(base_y + jitter_y, 1),
+            "rotation": random.randint(-25, 25),
+            "x": round(x, 1),
+            "y": round(y, 1),
         })
 
     return board
