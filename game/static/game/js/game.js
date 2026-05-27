@@ -19,6 +19,7 @@
     let isHunting = false;
     let pickTimerInterval = null;
     let lastTickSecond = -1;
+    let hasShownEliminatedOverlay = false;
 
     // --- Audio System ---
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -208,7 +209,8 @@
         if (me) {
             myTimeBank = me.time_bank;
             isEliminated = me.is_eliminated;
-            if (isEliminated) {
+            if (isEliminated && !hasShownEliminatedOverlay) {
+                hasShownEliminatedOverlay = true;
                 const el = document.getElementById('eliminated-overlay');
                 el.classList.add('visible');
                 setTimeout(() => el.classList.remove('visible'), 4000);
@@ -546,9 +548,12 @@
             playSound('eliminated');
             isEliminated = true;
             isHunting = false;
-            const el = document.getElementById('eliminated-overlay');
-            el.classList.add('visible');
-            setTimeout(() => el.classList.remove('visible'), 4000);
+            if (!hasShownEliminatedOverlay) {
+                hasShownEliminatedOverlay = true;
+                const el = document.getElementById('eliminated-overlay');
+                el.classList.add('visible');
+                setTimeout(() => el.classList.remove('visible'), 4000);
+            }
             document.querySelectorAll('.arena-word').forEach(w => w.classList.add('disabled'));
         }
 

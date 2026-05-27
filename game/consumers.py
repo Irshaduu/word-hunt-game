@@ -157,45 +157,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 player = room.players[self.username]
                 player.is_connected = False
 
-                # Give the player 5 seconds to reconnect (e.g. if they just refreshed).
-                # If they don't, the delayed task will eliminate them so the game doesn't hang.
-                asyncio.ensure_future(self.delayed_disconnect_check(room, self.username))
-
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
-
-    async def delayed_disconnect_check(self, room, username):
-        await asyncio.sleep(5.0)
-        
-        # Ensure room still exists
-        if room.room_code not in ROOMS:
-            return
-            
-        player = room.players.get(username)
-        # If they reconnected, or are already eliminated, or game is over, do nothing
-        if not player or player.is_connected or player.is_eliminated or room.state == GAME_OVER:
-            return
-
-        # They are STILL disconnected after 5 seconds -> eliminate them permanently
-        player.is_eliminated = True
-        player.time_bank = 0
-
-        await self.channel_layer.group_send(
-            self.group_name,
-            {
-                'type': 'player_eliminated',
-                'username': username,
-                'players': room.get_player_list(),
-            }
-        )
-
-        is_over, winner = room.check_game_over()
-        if is_over:
-            await self.broadcast_game_over(room, winner)
-        else:
-            if room.state == PICKING and username == room.current_picker:
-                await self.finish_round(room)
-            elif room.state == HUNTING and room.check_round_complete():
-                await self.finish_round(room)
 
     async def receive(self, text_data):
         data = json.loads(text_data)
