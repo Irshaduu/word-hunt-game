@@ -8,7 +8,7 @@ SECRET_KEY = os.environ.get(
     'dev-insecure-key-change-in-production-abc123xyz'
 )
 
-DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
+DEBUG = os.environ.get('DJANGO_DEBUG', 'False').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = ['*']
 CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com', 'https://poocha-word-hunt.onrender.com']
