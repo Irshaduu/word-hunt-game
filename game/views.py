@@ -9,6 +9,7 @@ from django.core.paginator import Paginator
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
+from django.db.models import Q
 from .game_manager import ROOMS, GameRoom, generate_room_code
 
 def landing(request):
@@ -41,7 +42,10 @@ def landing(request):
         context['fifth_places'] = profile.fifth_places
         
         # Calculate global rank
-        global_rank = User.objects.filter(profile__total_earned_seconds__gt=profile.total_earned_seconds).count() + 1
+        global_rank = User.objects.filter(
+            Q(profile__total_earned_seconds__gt=profile.total_earned_seconds) |
+            Q(profile__total_earned_seconds=profile.total_earned_seconds, id__lt=request.user.id)
+        ).count() + 1
         context['global_rank'] = global_rank
         
         return render(request, 'game/landing_auth.html', context)
@@ -170,7 +174,7 @@ def game_view(request, room_code):
 
 def api_leaderboard(request):
     """JSON endpoint for paginated global leaderboard."""
-    users = User.objects.select_related('profile').order_by('-profile__total_earned_seconds')
+    users = User.objects.select_related('profile').order_by('-profile__total_earned_seconds', 'id')
     paginator = Paginator(users, 25)
     page_num = request.GET.get('page', 1)
     page = paginator.get_page(page_num)
