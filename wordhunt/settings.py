@@ -11,7 +11,7 @@ SECRET_KEY = os.environ.get(
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = ['*']
-CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com', 'https://poocha-word-hunt.onrender.com']
+CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com', 'https://word-hunt-game.onrender.com']
 
 INSTALLED_APPS = [
     'daphne',

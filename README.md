@@ -2,7 +2,7 @@
 
 A real-time, multiplayer word-finding game built with **Django** and **WebSockets**. Create a room, invite up to 4 friends, and race against the clock to find hidden words on the board!
 
-> 🌐 **Play now:** [poocha-word-hunt.onrender.com](https://poocha-word-hunt.onrender.com) (Free — hosted on Render)
+> 🌐 **Play now:** [word-hunt-game.onrender.com](https://word-hunt-game.onrender.com) (Free — hosted on Render)
 
 ## Features ✨
 
