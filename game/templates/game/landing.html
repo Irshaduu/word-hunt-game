@@ -239,5 +239,20 @@
             fetchLeaderboard(currentLeaderboardPage);
         });
     }
+
+    // Prevent double submissions that cause CSRF token rotation errors
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', (e) => {
+            const btn = form.querySelector('button[type="submit"]');
+            if (btn) {
+                setTimeout(() => {
+                    btn.disabled = true;
+                    btn.style.opacity = '0.7';
+                    const text = btn.querySelector('.btn-text');
+                    if (text) text.innerText = 'Please wait...';
+                }, 0);
+            }
+        });
+    });
 </script>
 {% endblock %}
