@@ -15,11 +15,12 @@ ROOMS = {}
 
 
 def cleanup_stale_rooms():
-    """Remove rooms that have been in GAME_OVER for more than 10 minutes."""
+    """Remove rooms that are stale (GAME_OVER for 10m, or inactive for 2h)."""
     now = time.time()
     stale = [
         code for code, room in ROOMS.items()
-        if room.state == GAME_OVER and hasattr(room, '_game_over_time') and now - room._game_over_time > 600
+        if (room.state == GAME_OVER and hasattr(room, '_game_over_time') and now - room._game_over_time > 600)
+        or (hasattr(room, 'last_activity') and now - room.last_activity > 7200)
     ]
     for code in stale:
         del ROOMS[code]
@@ -87,9 +88,14 @@ class GameRoom:
         self.state = LOBBY
         self.show_start_time = None  # When the 3-sec popup started
         self.pick_start_time = None  # When picking phase started
+        self.last_activity = time.time()
+
+    def update_activity(self):
+        self.last_activity = time.time()
 
     def add_player(self, username):
         """Add a player to the room. Returns (success, error_msg)."""
+        self.update_activity()
         if self.state == GAME_OVER:
             self.reset_to_lobby(username)
 
@@ -108,6 +114,7 @@ class GameRoom:
 
     def remove_player(self, username):
         """Handle player disconnect."""
+        self.update_activity()
         if username in self.players:
             if self.state == LOBBY:
                 del self.players[username]
@@ -133,6 +140,7 @@ class GameRoom:
 
     def start_game(self):
         """Initialize the game — randomize turns, generate board."""
+        self.update_activity()
         if len(self.players) < 2:
             return False, "Need at least 2 players"
 
@@ -148,6 +156,7 @@ class GameRoom:
         self.current_picker = self.turn_order[0]
         self.state = PICKING
         self.pick_start_time = time.time()
+        self.pick_timer_started = False
 
         return True, None
 
@@ -164,6 +173,7 @@ class GameRoom:
 
     def pick_word(self, username, word):
         """Player picks a word from the board. Returns (success, error_msg)."""
+        self.update_activity()
         if self.state != PICKING:
             return False, "Not in picking phase"
         if username != self.current_picker:
@@ -199,6 +209,7 @@ class GameRoom:
         A hunting player clicked a word. Validate and process.
         Returns (success, time_taken, error_msg).
         """
+        self.update_activity()
         if self.state != HUNTING:
             return False, 0, "Not in hunting phase"
 
@@ -285,6 +296,7 @@ class GameRoom:
         Advance to the next turn — get next picker, refresh board.
         Returns the new picker username.
         """
+        self.update_activity()
         next_picker = self.get_next_picker()
         if next_picker is None:
             self.state = GAME_OVER

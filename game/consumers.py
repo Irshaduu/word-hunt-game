@@ -150,6 +150,10 @@ class GameConsumer(AsyncWebsocketConsumer):
             **room.get_game_state(),
         }))
 
+        if room.state == PICKING and not getattr(room, 'pick_timer_started', False):
+            room.pick_timer_started = True
+            asyncio.ensure_future(self._auto_pick_timer(room, room.pick_start_time, room.current_picker))
+
     async def disconnect(self, close_code):
         if hasattr(self, 'room_code') and self.room_code in ROOMS:
             room = ROOMS[self.room_code]
@@ -203,6 +207,27 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         # Launch the countdown in the background so it doesn't block the picker's socket
         asyncio.ensure_future(self._wait_and_start_hunt(room))
+
+    async def _auto_pick_timer(self, room, pick_start_time, picker_username):
+        await asyncio.sleep(20.0)
+        if getattr(self, 'room_code', None) not in ROOMS:
+            return
+        if room.state == PICKING and room.pick_start_time == pick_start_time:
+            import random
+            board_words = [w['word'] for w in room.board]
+            if board_words:
+                random_word = random.choice(board_words)
+                success, error = room.pick_word(picker_username, random_word)
+                if success:
+                    await self.channel_layer.group_send(
+                        self.group_name,
+                        {
+                            'type': 'word_picked',
+                            'word': random_word,
+                            'picker': picker_username,
+                        }
+                    )
+                    asyncio.ensure_future(self._wait_and_start_hunt(room))
 
     async def _wait_and_start_hunt(self, room):
         # Wait 6.0 seconds for the popup
@@ -369,6 +394,9 @@ class GameConsumer(AsyncWebsocketConsumer):
                 **room.get_game_state(),
             }
         )
+
+        room.pick_timer_started = True
+        asyncio.ensure_future(self._auto_pick_timer(room, room.pick_start_time, next_picker))
 
     async def broadcast_game_over(self, room, winner):
         """Broadcast the game over state with leaderboard."""

@@ -1,6 +1,6 @@
 # Word Hunt 🎯
 
-A real-time, multiplayer word-finding game built with **Django** and **WebSockets**. Create a room, invite up to 4 friends, and race against the clock to find hidden words on the board!
+A real-time, multiplayer word-finding game built with **Django** and **WebSockets**. Designed for quick, low-friction multiplayer sessions during voice calls and casual gatherings, the project prioritizes a "zero-friction" user experience: offering instant home-screen installation via PWA, utilizing lightweight PIN authentication, and featuring 3-letter room codes for verbal sharing.
 
 > 🌐 **Play now:** [word-hunt-game.onrender.com](https://word-hunt-game.onrender.com) (Free — hosted on Render)
 
@@ -23,7 +23,7 @@ A real-time, multiplayer word-finding game built with **Django** and **WebSocket
 
 ## The $0 System Philosophy 💸
 
-This game is designed to run at **absolute zero cost**:
+This game is designed to operate at zero recurring infrastructure cost:
 
 | Component | Choice | Cost |
 |-----------|--------|------|
@@ -35,7 +35,7 @@ This game is designed to run at **absolute zero cost**:
 | SSL/HTTPS | Render provides free TLS | $0 |
 | Domain | `*.onrender.com` subdomain | $0 |
 
-The system comfortably handles **~30 concurrent users** and **~4 simultaneous games** — exactly what's needed for playing with friends, family, and office mates.
+The system comfortably supports the intended usage pattern of friends, family, and office gatherings.
 
 ## Tech Stack 🛠️
 
@@ -60,6 +60,9 @@ The system comfortably handles **~30 concurrent users** and **~4 simultaneous ga
 7. **Victory:** The last player standing with time remaining wins the game! 🏆
 
 ## Architecture Overview 🏗️
+
+> **Detailed Design Document:** Please read [ARCHITECTURE.md](ARCHITECTURE.md) for a deep dive into the $0 infrastructure constraints, the single-instance state management strategy, and DevOps workarounds.
+
 
 ```
 Client (Browser)                    Server (Render)
