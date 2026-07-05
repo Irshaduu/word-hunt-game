@@ -691,9 +691,9 @@ html, body {
 .scoreboard {
     display: flex;
     gap: 4px;
-    overflow-x: auto;
+    flex-wrap: wrap;
+    justify-content: flex-start;
     padding-bottom: 2px;
-    scrollbar-width: none;
 }
 
 .scoreboard::-webkit-scrollbar {
@@ -701,9 +701,9 @@ html, body {
 }
 
 .score-card {
-    flex: 1 1 0;
+    flex: 1 1 calc(20% - 6px);
     min-width: 60px;
-    max-width: 110px;
+    max-width: 90px;
     padding: 8px 4px;
     background: rgba(30, 30, 45, 0.7);
     backdrop-filter: blur(8px);

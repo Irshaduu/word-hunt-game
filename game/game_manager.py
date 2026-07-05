@@ -100,8 +100,8 @@ class GameRoom:
         if self.state == GAME_OVER:
             self.reset_to_lobby(username)
 
-        if len(self.players) >= 5:
-            return False, "Room is full (max 5 players)"
+        if len(self.players) >= 10:
+            return False, "Room is full (max 10 players)"
         if username in self.players:
             # Reconnecting player
             self.players[username].is_connected = True

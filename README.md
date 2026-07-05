@@ -7,7 +7,8 @@ A real-time, multiplayer word-finding game built with **Django** and **WebSocket
 ## Features ✨
 
 - **Real-time Multiplayer:** Powered by Django Channels and WebSockets for instant interactions.
-- **Dynamic Gameplay:** One player secretly picks a word from a chaotic board of **71 randomized words** (varied fonts, sizes, colors, and rotations), and the others scramble to find it.
+- **Spectator Mode:** Latecomers or extra friends can join in-progress games as live spectators to watch the action unfold in real-time.
+- **Dynamic Gameplay:** Up to **10 players** can join a single room. One player secretly picks a word from a chaotic board of **71 randomized words** (varied fonts, sizes, colors, and rotations), and the others scramble to find it.
 - **Time Bank System:** Every player starts with **100 seconds**. Time ticks down while you're hunting. If your timer hits zero, you're eliminated!
 - **Modern UI:** A vibrant, glassmorphism design with a deep-space arena, neon floating banners, gradient accents, and smooth micro-animations. Fully optimized for mobile, tablet, and desktop.
 - **Reconnection Handling:** Players are soft-disconnected on connection loss, allowing safe browser refreshes without being kicked from the game. Clients reconnect with exponential backoff and receive a full state sync.

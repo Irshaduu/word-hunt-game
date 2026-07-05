@@ -15,8 +15,8 @@
             <div style="display: flex; align-items: center; gap: 12px;">
                 <span class="header-room-code"><i class="ph-duotone ph-magnifying-glass" style="color: #67E8F9;"></i> {{ room_code }}</span>
                 <!-- Spectator Eye Icon & Count -->
-                <div id="spectator-counter-wrapper" style="display: none; position: relative; cursor: pointer; align-items: center; gap: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 4px 10px; color: #F87171; font-weight: bold; font-size: 0.9rem;">
-                    <i class="ph-duotone ph-eye" style="font-size: 1.1rem; filter: drop-shadow(0 2px 4px rgba(248, 113, 113, 0.3));"></i>
+                <div id="spectator-counter-wrapper" style="display: none; position: relative; cursor: pointer; align-items: center; gap: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: 2px 8px; color: #F87171; font-weight: bold; font-size: 0.75rem;">
+                    <i class="ph-duotone ph-eye" style="font-size: 0.9rem; filter: drop-shadow(0 2px 4px rgba(248, 113, 113, 0.3));"></i>
                     <span id="spectator-count-text">0</span>
                     
                     <!-- Spectator Dropdown -->
@@ -126,5 +126,5 @@
     const USERNAME = '{{ username }}';
     const IS_SPECTATOR = {{ is_spectator|yesno:"true,false" }};
 </script>
-<script src="{% static 'game/js/game.js' %}?v=5"></script>
+<script src="{% static 'game/js/game.js' %}?v=7"></script>
 {% endblock %}

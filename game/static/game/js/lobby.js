@@ -72,6 +72,7 @@
 
     let ws = null;
     let reconnectAttempts = 0;
+    let intentionalDisconnect = false;
     const MAX_RECONNECT = 10;
 
     function connect() {
@@ -84,7 +85,7 @@
 
         ws.onclose = (e) => {
             console.log('Lobby WS closed:', e.code);
-            if (reconnectAttempts < MAX_RECONNECT) {
+            if (!intentionalDisconnect && reconnectAttempts < MAX_RECONNECT) {
                 const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000);
                 reconnectAttempts++;
                 setTimeout(connect, delay);
@@ -160,7 +161,7 @@
         const countEl = document.getElementById('player-count');
         const isHostNow = (USERNAME === creator);
 
-        countEl.textContent = `(${players.length}/5)`;
+        countEl.textContent = `(${players.length}/10)`;
 
         listEl.innerHTML = '';
         players.forEach((player, index) => {
@@ -264,6 +265,32 @@
         } else {
             fallback();
         }
+    });
+
+    // Handle explicit leave and mobile backgrounding
+    const btnExitLobby = document.querySelector('.btn-exit-lobby');
+    if (btnExitLobby) {
+        btnExitLobby.addEventListener('click', () => {
+            intentionalDisconnect = true;
+            if (ws) ws.close();
+        });
+    }
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') {
+            intentionalDisconnect = true;
+            if (ws) ws.close();
+        } else {
+            intentionalDisconnect = false;
+            if (!ws || ws.readyState === WebSocket.CLOSED) {
+                connect();
+            }
+        }
+    });
+
+    window.addEventListener('pagehide', () => {
+        intentionalDisconnect = true;
+        if (ws) ws.close();
     });
 
     // --- Initialize ---

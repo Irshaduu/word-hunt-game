@@ -129,8 +129,8 @@ def join_room(request, room_code):
         request.session['error'] = 'Game already in progress'
         return redirect('landing')
 
-    if len(room.players) >= 5:
-        request.session['error'] = 'Room is full (max 5 players)'
+    if len(room.players) >= 10:
+        request.session['error'] = 'Room is full (max 10 players)'
         return redirect('landing')
 
     # Check for duplicate username in this room (shouldn't happen with unique users unless logic error, but good to keep)

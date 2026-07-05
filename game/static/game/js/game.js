@@ -663,9 +663,9 @@
         const lbEl = document.getElementById('leaderboard');
         lbEl.innerHTML = '';
 
-        const rankEmojis = ['🥇', '🥈', '🥉', '🥚', '🩲'];
+        const rankEmojis = ['🥇', '🥈', '🥉', '🥚', '🩲', '💩', '💩', '💩', '💩', '💩'];
 
-        data.leaderboard.forEach((entry, idx) => {
+        const renderRow = (entry, idx) => {
             const row = document.createElement('div');
             row.className = 'lb-row';
             if (idx === 0) row.classList.add('lb-winner');
@@ -681,8 +681,48 @@
                     <br><span class="lb-words">${entry.words_found} words found</span>
                 </div>
             `;
-            lbEl.appendChild(row);
+            return row;
+        };
+
+        const top5 = data.leaderboard.slice(0, 5);
+        const rest = data.leaderboard.slice(5);
+
+        top5.forEach((entry, idx) => {
+            lbEl.appendChild(renderRow(entry, idx));
         });
+
+        if (rest.length > 0) {
+            const toggleBtn = document.createElement('button');
+            toggleBtn.className = 'btn btn-secondary';
+            toggleBtn.style.width = '100%';
+            toggleBtn.style.marginTop = '12px';
+            toggleBtn.style.marginBottom = '8px';
+            toggleBtn.style.padding = '8px';
+            toggleBtn.style.fontSize = '0.9rem';
+            toggleBtn.textContent = 'See More ▼';
+
+            const hiddenContainer = document.createElement('div');
+            hiddenContainer.style.display = 'none';
+            hiddenContainer.style.gap = '8px';
+            hiddenContainer.style.flexDirection = 'column';
+            
+            rest.forEach((entry, idx) => {
+                hiddenContainer.appendChild(renderRow(entry, idx + 5));
+            });
+
+            toggleBtn.onclick = () => {
+                if (hiddenContainer.style.display === 'none') {
+                    hiddenContainer.style.display = 'flex';
+                    toggleBtn.textContent = 'See Less ▲';
+                } else {
+                    hiddenContainer.style.display = 'none';
+                    toggleBtn.textContent = 'See More ▼';
+                }
+            };
+            
+            lbEl.appendChild(toggleBtn);
+            lbEl.appendChild(hiddenContainer);
+        }
 
         // Winner info
         document.getElementById('winner-title').textContent = data.winner
@@ -861,7 +901,7 @@
         if (headerTop) {
             const badge = document.createElement('span');
             badge.className = 'spectator-badge';
-            badge.style.cssText = 'background: rgba(248, 113, 113, 0.2); color: #F87171; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; margin-left: 10px; border: 1px solid rgba(248, 113, 113, 0.3); display: flex; align-items: center; gap: 4px;';
+            badge.style.cssText = 'background: rgba(248, 113, 113, 0.2); color: #F87171; padding: 2px 6px; border-radius: 8px; font-size: 0.75rem; font-weight: bold; margin-left: 8px; border: 1px solid rgba(248, 113, 113, 0.3); display: flex; align-items: center; gap: 4px;';
             badge.innerHTML = '<i class="ph-duotone ph-monitor-play"></i> Spectating';
             
             const roomCodeEl = document.querySelector('.header-room-code');

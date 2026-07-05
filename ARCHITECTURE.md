@@ -25,8 +25,9 @@ To achieve a true $0 operating cost while supporting our target audience, we mad
 
 The system uses Django Channels with the `InMemoryChannelLayer` and a global Python dictionary (`ROOMS = {}`) to manage the entire game state.
 
-- **Why Not Redis?** Introducing a message broker like Redis is standard practice for horizontal scaling. However, our target scale is **under 50 concurrent users** (friends, family, and office mates). Deploying a distributed caching layer for 50 users violates the YAGNI (You Aren't Gonna Need It) principle. 
+- **Why Not Redis?** Introducing a message broker like Redis is standard practice for horizontal scaling. However, our target scale is **up to 100-200 concurrent users** (friends, family, and extended social circles). Deploying a distributed caching layer for 200 users violates the YAGNI (You Aren't Gonna Need It) principle. 
 - **The Trade-Off:** The `InMemoryChannelLayer` locks the application to a **single server instance**. For our specified user base, this single-instance architecture is not a bottleneck; rather, it's a highly efficient design that eliminates network latency between the app server and a cache layer, keeping latency low and avoiding unnecessary infrastructure complexity.
+- **Spectators & State Hardening:** Since all room state (including player lists, spectator sets, and active game phases) is tracked purely in memory, we enforce strict state-machine rules (preventing unauthorized re-entry to LOBBY) and utilize dictionary copying during iterations to prevent concurrency issues common in asynchronous WebSocket environments.
 
 ## 4. Web Audio API vs. Audio Files
 
@@ -42,4 +43,4 @@ Real-world mobile networks are flaky. To handle this:
 - When the client reconnects (using exponential backoff), the server automatically resyncs the entire current game state payload, allowing them to resume exactly where they left off without losing their time bank.
 
 ---
-*By constraining the system to $0 and acknowledging the <50 user limit, these constraints led to custom state machines and native audio synthesis, resulting in a lightweight and efficient MVP without introducing unnecessary infrastructure complexity.*
+*By constraining the system to $0 and acknowledging the <200 user limit, these constraints led to custom state machines and native audio synthesis, resulting in a lightweight and efficient MVP without introducing unnecessary infrastructure complexity.*

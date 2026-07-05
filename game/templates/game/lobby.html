@@ -27,7 +27,7 @@
         </div>
 
         <div class="card glass-card players-card">
-            <h2 class="card-title">Players <span class="player-count" id="player-count">(0/5)</span></h2>
+            <h2 class="card-title">Players <span class="player-count" id="player-count">(0/10)</span></h2>
             <div class="player-list" id="player-list">
                 <!-- Players will be added dynamically via WebSocket -->
                 <div class="player-placeholder">Waiting for players to join...</div>
@@ -58,5 +58,5 @@
     const USERNAME = '{{ username }}';
     const IS_CREATOR = {{ is_creator|yesno:"true,false" }};
 </script>
-<script src="{% static 'game/js/lobby.js' %}?v=2"></script>
+<script src="{% static 'game/js/lobby.js' %}?v=4"></script>
 {% endblock %}
