@@ -6,104 +6,102 @@
 {% block content %}
 <div class="landing-bg" style="position: relative;">
     
-    <!-- Top Left Global Leaderboard Button & Modal -->
-    <div style="position: absolute; top: 20px; left: 20px; z-index: 100;">
-        <button type="button" id="btn-global-leaderboard" class="btn btn-secondary" style="border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-color: rgba(255,255,255,0.2);">
-            <i class="ph-duotone ph-globe" style="color: #60A5FA; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i>
-        </button>
-
-        <!-- Global Leaderboard Dropdown Modal -->
-        <div id="global-leaderboard-dropdown" class="glass-card" style="display: none; position: absolute; top: 60px; left: 0; width: calc(100vw - 40px); max-width: 360px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); transform-origin: top left; max-height: 80vh; overflow-y: auto; flex-direction: column;">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <div style="font-size: 2.8rem; margin-bottom: 10px; color: #60A5FA;"><i class="ph-duotone ph-trophy" style="filter: drop-shadow(0 4px 8px rgba(96, 165, 250, 0.4));"></i></div>
-                <h3 style="font-family: var(--font-display); color: var(--text-primary); margin-bottom: 4px; font-size: 1.3rem;">Global Leaderboard</h3>
-                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0; margin-bottom: 8px;">Top Hunters Worldwide</p>
-                <div style="display: inline-block; background: rgba(96, 165, 250, 0.1); border: 1px solid rgba(96, 165, 250, 0.2); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; color: #60A5FA; font-weight: bold;">
-                    Your Rank: #{{ global_rank }}
-                </div>
-            </div>
-            
-            <div id="global-leaderboard-list" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
-                <!-- Player items will be appended here via JS -->
-            </div>
-
-            <button type="button" id="btn-load-more" class="btn btn-secondary" style="width: 100%; display: none; text-align: center; justify-content: center;">
-                <span class="btn-text">Load More</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- Top Right Profile Button & Dropdown -->
-    <div style="position: absolute; top: 20px; right: 20px; z-index: 100;">
-        <button type="button" id="btn-profile" class="btn btn-secondary" style="border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-color: rgba(255,255,255,0.2);">
-            <i class="ph-duotone ph-user" style="color: #C084FC; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i>
-        </button>
-        
-        <!-- Profile Dropdown Modal -->
-        <div id="profile-dropdown" class="glass-card" style="display: none; position: absolute; top: 60px; right: 0; width: 320px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); transform-origin: top right;">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <div style="font-size: 2.8rem; margin-bottom: 10px; color: #FBBF24;"><i class="ph-duotone ph-crown" style="filter: drop-shadow(0 4px 8px rgba(251, 191, 36, 0.4));"></i></div>
-                <h3 style="font-family: var(--font-display); color: var(--text-primary); margin-bottom: 4px; font-size: 1.3rem;">{{ username }}</h3>
-                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Word Hunter</p>
-            </div>
-            
-            <div style="background: rgba(255,255,255,0.05); border-radius: var(--radius-sm); padding: 16px; text-align: center; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05);">
-                <span style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Total Earned Seconds</span>
-                <br>
-                <span style="font-size: 2.2rem; font-weight: bold; color: var(--accent-green); font-family: var(--font-display); text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);">{{ total_earned_seconds }}s</span>
-            </div>
-            
-            <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.05); border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05);">
-                <div style="text-align: center;">
-                    <div style="font-size: 1.2rem; margin-bottom: 4px;">🥇</div>
-                    <div style="font-family: var(--font-display); font-weight: bold; color: var(--text-primary);">{{ first_places }}</div>
-                </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 1.2rem; margin-bottom: 4px;">🥈</div>
-                    <div style="font-family: var(--font-display); font-weight: bold; color: var(--text-primary);">{{ second_places }}</div>
-                </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 1.2rem; margin-bottom: 4px;">🥉</div>
-                    <div style="font-family: var(--font-display); font-weight: bold; color: var(--text-primary);">{{ third_places }}</div>
-                </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 1.2rem; margin-bottom: 4px;">🥚</div>
-                    <div style="font-family: var(--font-display); font-weight: bold; color: var(--text-primary);">{{ fourth_places }}</div>
-                </div>
-                <div style="text-align: center;">
-                    <div style="font-size: 1.2rem; margin-bottom: 4px;">🩲</div>
-                    <div style="font-family: var(--font-display); font-weight: bold; color: var(--text-primary);">{{ fifth_places }}</div>
-                </div>
-            </div>
-            
-            <a href="{% url 'logout' %}" class="btn btn-secondary" style="width: 100%; text-decoration: none; text-align: center; background: rgba(248, 113, 113, 0.1); color: #F87171; border-color: rgba(248, 113, 113, 0.2); justify-content: center;">
-                <span class="btn-text">Sign Out</span>
-            </a>
-        </div>
-    </div>
-
-    <!-- Bottom Left Live Games Button & Modal -->
-    <div style="position: absolute; bottom: 20px; left: 20px; z-index: 100;">
-        <button type="button" id="btn-live-games" class="btn btn-secondary" style="border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-color: rgba(255,255,255,0.2);">
+    <!-- Top Right Action Buttons -->
+    <div style="position: absolute; top: 20px; right: 20px; z-index: 100; display: flex; gap: 12px; align-items: center;">
+        <!-- Live Games Button -->
+        <button type="button" id="btn-live-games" class="btn btn-secondary" style="border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-color: rgba(255,255,255,0.2);" title="Live Games">
             <i class="ph-duotone ph-broadcast" style="color: #F87171; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i>
         </button>
 
-        <!-- Live Games Dropdown Modal -->
-        <div id="live-games-dropdown" class="glass-card" style="display: none; position: absolute; bottom: 60px; left: 0; width: calc(100vw - 40px); max-width: 360px; padding: 24px; box-shadow: 0 -10px 40px rgba(0,0,0,0.6); transform-origin: bottom left; max-height: 80vh; overflow-y: auto; flex-direction: column;">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <div style="font-size: 2.8rem; margin-bottom: 10px; color: #F87171;"><i class="ph-duotone ph-monitor-play" style="filter: drop-shadow(0 4px 8px rgba(248, 113, 113, 0.4));"></i></div>
-                <h3 style="font-family: var(--font-display); color: var(--text-primary); margin-bottom: 4px; font-size: 1.3rem;">Live Games</h3>
-                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Spectate matches in progress</p>
-            </div>
-            
-            <div id="live-games-list" style="display: flex; flex-direction: column; gap: 12px;">
-                <!-- Live games will be appended here via JS -->
-            </div>
-            
-            <div id="live-games-empty" style="display: none; text-align: center; color: var(--text-muted); font-size: 0.9rem; padding: 20px 0;">
-                No live games right now.
+        <!-- Global Leaderboard Button -->
+        <button type="button" id="btn-global-leaderboard" class="btn btn-secondary" style="border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-color: rgba(255,255,255,0.2);" title="Global Leaderboard">
+            <i class="ph-duotone ph-globe" style="color: #60A5FA; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i>
+        </button>
+
+        <!-- Profile Button -->
+        <button type="button" id="btn-profile" class="btn btn-secondary" style="border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-color: rgba(255,255,255,0.2);" title="Profile">
+            <i class="ph-duotone ph-user" style="color: #C084FC; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i>
+        </button>
+    </div>
+
+    <!-- Dropdowns (Top Right Aligned) -->
+    <!-- Live Games Dropdown Modal -->
+    <div id="live-games-dropdown" class="glass-card" style="display: none; position: absolute; top: 72px; right: 20px; z-index: 99; width: calc(100vw - 40px); max-width: 360px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); transform-origin: top right; max-height: 80vh; overflow-y: auto; flex-direction: column;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 2.8rem; margin-bottom: 10px; color: #F87171;"><i class="ph-duotone ph-monitor-play" style="filter: drop-shadow(0 4px 8px rgba(248, 113, 113, 0.4));"></i></div>
+            <h3 style="font-family: var(--font-display); color: var(--text-primary); margin-bottom: 4px; font-size: 1.3rem;">Live Games</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Spectate matches in progress</p>
+        </div>
+        
+        <div id="live-games-list" style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- Live games will be appended here via JS -->
+        </div>
+        
+        <div id="live-games-empty" style="display: none; text-align: center; color: var(--text-muted); font-size: 0.9rem; padding: 20px 0;">
+            No live games right now.
+        </div>
+    </div>
+
+    <!-- Global Leaderboard Dropdown Modal -->
+    <div id="global-leaderboard-dropdown" class="glass-card" style="display: none; position: absolute; top: 72px; right: 20px; z-index: 99; width: calc(100vw - 40px); max-width: 360px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); transform-origin: top right; max-height: 80vh; overflow-y: auto; flex-direction: column;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 2.8rem; margin-bottom: 10px; color: #60A5FA;"><i class="ph-duotone ph-trophy" style="filter: drop-shadow(0 4px 8px rgba(96, 165, 250, 0.4));"></i></div>
+            <h3 style="font-family: var(--font-display); color: var(--text-primary); margin-bottom: 4px; font-size: 1.3rem;">Global Leaderboard</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0; margin-bottom: 8px;">Top Hunters Worldwide</p>
+            <div style="display: inline-block; background: rgba(96, 165, 250, 0.1); border: 1px solid rgba(96, 165, 250, 0.2); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; color: #60A5FA; font-weight: bold;">
+                Your Rank: #{{ global_rank }}
             </div>
         </div>
+        
+        <div id="global-leaderboard-list" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px;">
+            <!-- Player items will be appended here via JS -->
+        </div>
+
+        <button type="button" id="btn-load-more" class="btn btn-secondary" style="width: 100%; display: none; text-align: center; justify-content: center;">
+            <span class="btn-text">Load More</span>
+        </button>
+    </div>
+
+    <!-- Profile Dropdown Modal -->
+    <div id="profile-dropdown" class="glass-card" style="display: none; position: absolute; top: 72px; right: 20px; z-index: 99; width: 320px; padding: 24px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); transform-origin: top right;">
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 2.8rem; margin-bottom: 10px; color: #FBBF24;"><i class="ph-duotone ph-crown" style="filter: drop-shadow(0 4px 8px rgba(251, 191, 36, 0.4));"></i></div>
+            <h3 style="font-family: var(--font-display); color: var(--text-primary); margin-bottom: 4px; font-size: 1.3rem;">{{ username }}</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Word Hunter</p>
+        </div>
+        
+        <div style="background: rgba(255,255,255,0.05); border-radius: var(--radius-sm); padding: 16px; text-align: center; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.05);">
+            <span style="color: var(--text-secondary); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;">Total Earned Seconds</span>
+            <br>
+            <span style="font-size: 2.2rem; font-weight: bold; color: var(--accent-green); font-family: var(--font-display); text-shadow: 0 0 10px rgba(74, 222, 128, 0.3);">{{ total_earned_seconds }}s</span>
+        </div>
+        
+        <div style="display: flex; justify-content: space-between; background: rgba(255,255,255,0.05); border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.05);">
+            <div style="text-align: center;">
+                <div style="font-size: 1.2rem; margin-bottom: 4px;">🥇</div>
+                <div style="font-family: var(--font-display); font-weight: bold; color: var(--text-primary);">{{ first_places }}</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 1.2rem; margin-bottom: 4px;">🥈</div>
+                <div style="font-family: var(--font-display); font-weight: bold; color: var(--text-primary);">{{ second_places }}</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 1.2rem; margin-bottom: 4px;">🥉</div>
+                <div style="font-family: var(--font-display); font-weight: bold; color: var(--text-primary);">{{ third_places }}</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 1.2rem; margin-bottom: 4px;">🥚</div>
+                <div style="font-family: var(--font-display); font-weight: bold; color: var(--text-primary);">{{ fourth_places }}</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 1.2rem; margin-bottom: 4px;">🩲</div>
+                <div style="font-family: var(--font-display); font-weight: bold; color: var(--text-primary);">{{ fifth_places }}</div>
+            </div>
+        </div>
+        
+        <a href="{% url 'logout' %}" class="btn btn-secondary" style="width: 100%; text-decoration: none; text-align: center; background: rgba(248, 113, 113, 0.1); color: #F87171; border-color: rgba(248, 113, 113, 0.2); justify-content: center;">
+            <span class="btn-text">Sign Out</span>
+        </a>
     </div>
 
 
@@ -173,6 +171,17 @@
 </div>
 
 <script>
+    function closeAllDropdowns() {
+        const pd = document.getElementById('profile-dropdown');
+        const gd = document.getElementById('global-leaderboard-dropdown');
+        const ld = document.getElementById('live-games-dropdown');
+        const md = document.getElementById('main-menu-dropdown');
+        if (pd) pd.style.display = 'none';
+        if (gd) gd.style.display = 'none';
+        if (ld) ld.style.display = 'none';
+        if (md) md.style.display = 'none';
+    }
+
     // Profile Dropdown Toggle
     const btnProfile = document.getElementById('btn-profile');
     const profileDropdown = document.getElementById('profile-dropdown');
@@ -181,6 +190,7 @@
         btnProfile.addEventListener('click', (e) => {
             e.stopPropagation();
             if (profileDropdown.style.display === 'none') {
+                closeAllDropdowns();
                 profileDropdown.style.display = 'block';
                 profileDropdown.style.animation = 'slideUp 0.2s ease-out';
             } else {
@@ -259,6 +269,7 @@
         btnGlobal.addEventListener('click', (e) => {
             e.stopPropagation();
             if (globalDropdown.style.display === 'none') {
+                closeAllDropdowns();
                 globalDropdown.style.display = 'flex';
                 globalDropdown.style.animation = 'slideUp 0.2s ease-out';
                 currentLeaderboardPage = 1;
@@ -363,6 +374,7 @@
         btnLiveGames.addEventListener('click', (e) => {
             e.stopPropagation();
             if (liveGamesDropdown.style.display === 'none') {
+                closeAllDropdowns();
                 liveGamesDropdown.style.display = 'flex';
                 liveGamesDropdown.style.animation = 'slideUp 0.2s ease-out';
                 fetchLiveGames();
