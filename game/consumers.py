@@ -143,6 +143,8 @@ class GameConsumer(AsyncWebsocketConsumer):
             # Mark player as connected (handles reconnection)
             room.players[self.username].is_connected = True
 
+        self.last_sound_time = 0
+
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
@@ -208,6 +210,27 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self.send(text_data=json.dumps({
                 'type': 'redirect_to_lobby'
             }))
+        elif msg_type == 'play_sound':
+            await self.handle_play_sound(data)
+
+    async def handle_play_sound(self, data):
+        """Handle a player triggering a soundboard sound with rate limiting."""
+        now = time_mod.time()
+        # Enforce 2-second rate limit per connection
+        if now - self.last_sound_time < 2.0:
+            return
+            
+        self.last_sound_time = now
+        sound = data.get('sound', '')
+        if sound in ['airhorn', 'clap']:
+            await self.channel_layer.group_send(
+                self.group_name,
+                {
+                    'type': 'play_sound',
+                    'sound': sound,
+                    'sender': self.username,
+                }
+            )
 
     async def handle_pick_word(self, room, data):
         """Handle a player picking a word from the board."""
@@ -532,6 +555,13 @@ class GameConsumer(AsyncWebsocketConsumer):
             'winner': event['winner'],
             'time_remaining': event['time_remaining'],
             'leaderboard': event['leaderboard'],
+        }))
+
+    async def play_sound(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'play_sound',
+            'sound': event['sound'],
+            'sender': event['sender'],
         }))
 
     async def game_state(self, event):

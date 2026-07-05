@@ -17,7 +17,8 @@ A real-time, multiplayer word-finding game built with **Django** and **WebSocket
 - **Global Leaderboard:** Paginated leaderboard showing top hunters worldwide, accessible from the landing page.
 - **Installable PWA:** Service worker + web manifest allows players to install Word Hunt as a native-like app on mobile.
 - **Screen Wake Lock:** Prevents mobile devices from sleeping during gameplay (requires HTTPS).
-- **Procedural Audio:** All sound effects (game start fanfare, tick countdown, elimination, victory chord) are synthesized in real-time via the Web Audio API — zero audio files needed.
+- **Procedural Audio:** Core game sound effects (start fanfare, tick countdown, elimination, victory chord) are synthesized in real-time via the Web Audio API — no files required.
+- **Soundboard:** Players can trigger shared sound effects (Airhorn 📣, Clap 👏) on the game over screen. All players in the room hear it instantly via WebSocket broadcast. A 2-second server-side rate limit per player prevents spam and protects server performance. A brief toast notification shows who triggered the sound.
 - **Haptic Feedback:** Vibration pattern on "Your Turn!" for mobile devices.
 - **Auto-Pick Safety Net:** If the picker doesn't choose a word within 20 seconds, a random word is auto-selected so the game keeps flowing.
 - **Stale Room Cleanup:** Rooms in GAME_OVER state are automatically purged after 10 minutes to free memory.
@@ -32,7 +33,8 @@ This game is designed to operate at zero recurring infrastructure cost:
 | Database | SQLite (file-based) | $0 |
 | Message Broker | InMemoryChannelLayer (no Redis) | $0 |
 | Static Files | WhiteNoise (no CDN) | $0 |
-| Sound Effects | Web Audio API (no audio files) | $0 |
+| Game Sound Effects | Web Audio API (synthesized, no files) | $0 |
+| Soundboard Sounds | 2 small `.mp3` files served via WhiteNoise | $0 |
 | SSL/HTTPS | Render provides free TLS | $0 |
 | Domain | `*.onrender.com` subdomain | $0 |
 

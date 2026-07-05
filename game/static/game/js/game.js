@@ -25,6 +25,12 @@
     const AudioContext = window.AudioContext || window.webkitAudioContext;
     let audioCtx = null;
 
+    // Preload soundboard audios
+    const soundFiles = {
+        'airhorn': new Audio('/static/game/audio/airhorn.mp3'),
+        'clap': new Audio('/static/game/audio/clap.mp3')
+    };
+
     function initAudio() {
         if (!audioCtx) audioCtx = new AudioContext();
         if (audioCtx.state === 'suspended') audioCtx.resume();
@@ -160,6 +166,9 @@
             case 'game_state':
                 handleGameState(data);
                 break;
+            case 'play_sound':
+                handlePlaySound(data);
+                break;
             case 'word_picked':
                 handleWordPicked(data);
                 break;
@@ -190,6 +199,48 @@
             case 'error':
                 console.warn('Server error:', data.message);
                 break;
+        }
+    }
+
+    // --- Soundboard Logic ---
+    let isSoundboardOnCooldown = false;
+    window.triggerSound = function(soundName) {
+        if (isSoundboardOnCooldown) return;
+        
+        // Visual cooldown
+        isSoundboardOnCooldown = true;
+        const buttons = document.querySelectorAll('.btn-soundboard');
+        buttons.forEach(btn => {
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+            btn.disabled = true;
+        });
+
+        // Send to server
+        send({ type: 'play_sound', sound: soundName });
+
+        // Reset after 2 seconds
+        setTimeout(() => {
+            isSoundboardOnCooldown = false;
+            buttons.forEach(btn => {
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+                btn.disabled = false;
+            });
+        }, 2000);
+    };
+
+    function handlePlaySound(data) {
+        const audio = soundFiles[data.sound];
+        if (audio) {
+            // Clone node allows playing overlapping identical sounds easily
+            const clonedAudio = audio.cloneNode();
+            clonedAudio.volume = 0.5; // Don't make it too loud
+            clonedAudio.play().catch(e => console.log('Audio blocked:', e));
+
+            // Show lightweight visual indicator
+            const emoji = data.sound === 'airhorn' ? '📣' : '👏';
+            showToast(`${escapeHtml(data.sender)} ${emoji}`);
         }
     }
 
@@ -788,13 +839,27 @@
     }
 
     // --- Toast Notifications ---
+    let toastContainer = null;
     function showToast(message) {
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.style.cssText = `
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                display: flex;
+                flex-direction: column-reverse; /* Newest toasts appear at the bottom */
+                gap: 8px;
+                z-index: 200;
+                align-items: center;
+                pointer-events: none;
+            `;
+            document.body.appendChild(toastContainer);
+        }
+
         const toast = document.createElement('div');
         toast.style.cssText = `
-            position: fixed;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
             background: rgba(0,0,0,0.8);
             backdrop-filter: blur(10px);
             color: white;
@@ -803,18 +868,23 @@
             font-family: var(--font-body);
             font-size: 0.85rem;
             font-weight: 600;
-            z-index: 200;
             animation: slideUp 0.3s ease;
-            pointer-events: none;
             border: 1px solid rgba(255,255,255,0.1);
+            transition: opacity 0.5s;
         `;
         toast.textContent = message;
-        document.body.appendChild(toast);
+        toastContainer.appendChild(toast);
+        
         setTimeout(() => {
             toast.style.opacity = '0';
-            toast.style.transition = 'opacity 0.5s';
-            setTimeout(() => toast.remove(), 500);
-        }, 2500);
+            setTimeout(() => {
+                toast.remove();
+                if (toastContainer && toastContainer.children.length === 0) {
+                    toastContainer.remove();
+                    toastContainer = null;
+                }
+            }, 500);
+        }, 1000);
     }
 
     // --- Confetti ---
