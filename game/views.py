@@ -198,3 +198,47 @@ def api_leaderboard(request):
         'has_next': page.has_next(),
         'next_page_number': page.next_page_number() if page.has_next() else None
     })
+
+
+def api_live_games(request):
+    """JSON endpoint returning a list of currently active games."""
+    live_games = []
+    # States that mean the game is actively being played
+    active_states = ['picking', 'showing', 'hunting', 'round_end']
+    
+    for code, room in list(ROOMS.items()):
+        if room.state in active_states:
+            live_games.append({
+                'room_code': code,
+                'state': room.state,
+                'players_count': room.get_active_player_count(),
+                'total_players': len(room.players),
+            })
+            
+    return JsonResponse({'games': live_games})
+
+
+@login_required(login_url='/')
+def spectate_view(request, room_code):
+    """View to spectate an active game."""
+    username = request.user.username
+    room_code = room_code.upper()
+    
+    if room_code not in ROOMS:
+        request.session['error'] = f'Room "{room_code}" not found'
+        return redirect('landing')
+        
+    # Check if they are actually a player in the game, if so just route them to game_view
+    room = ROOMS[room_code]
+    if username in room.players:
+        return redirect('game_view', room_code=room_code)
+        
+    # Prevent spectating lobbies (they listen to the wrong WebSocket group)
+    if room.state == 'lobby':
+        return redirect('lobby', room_code=room_code)
+
+    return render(request, 'game/game.html', {
+        'room_code': room_code,
+        'username': username,
+        'is_spectator': True,
+    })

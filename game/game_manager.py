@@ -18,7 +18,7 @@ def cleanup_stale_rooms():
     """Remove rooms that are stale (GAME_OVER for 10m, or inactive for 2h)."""
     now = time.time()
     stale = [
-        code for code, room in ROOMS.items()
+        code for code, room in list(ROOMS.items())
         if (room.state == GAME_OVER and hasattr(room, '_game_over_time') and now - room._game_over_time > 600)
         or (hasattr(room, 'last_activity') and now - room.last_activity > 7200)
     ]
@@ -79,6 +79,7 @@ class GameRoom:
         self.room_code = room_code
         self.creator = creator
         self.players = {}            # {username: PlayerState}
+        self.spectators = set()      # {username}
         self.player_order = []       # Join order (for lobby display)
         self.turn_order = []         # Randomized at game start
         self.current_turn_index = 0  # Index into turn_order
@@ -320,6 +321,7 @@ class GameRoom:
         return {
             'state': self.state,
             'players': self.get_player_list(),
+            'spectators': list(self.spectators),
             'turn_order': self.turn_order,
             'current_picker': self.current_picker,
             'chosen_word': self.chosen_word if self.state in (SHOWING, HUNTING) else None,
@@ -347,9 +349,10 @@ class GameRoom:
 
     def reset_to_lobby(self, username):
         """Reset the room from GAME_OVER back to LOBBY state."""
-        if self.state != LOBBY:
+        if self.state == GAME_OVER:
             self.state = LOBBY
             self.players = {}
+            self.spectators = set()
             self.player_order = []
             self.creator = username
             self.board = []

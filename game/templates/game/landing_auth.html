@@ -82,6 +82,31 @@
         </div>
     </div>
 
+    <!-- Bottom Left Live Games Button & Modal -->
+    <div style="position: absolute; bottom: 20px; left: 20px; z-index: 100;">
+        <button type="button" id="btn-live-games" class="btn btn-secondary" style="border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-color: rgba(255,255,255,0.2);">
+            <i class="ph-duotone ph-broadcast" style="color: #F87171; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i>
+        </button>
+
+        <!-- Live Games Dropdown Modal -->
+        <div id="live-games-dropdown" class="glass-card" style="display: none; position: absolute; bottom: 60px; left: 0; width: calc(100vw - 40px); max-width: 360px; padding: 24px; box-shadow: 0 -10px 40px rgba(0,0,0,0.6); transform-origin: bottom left; max-height: 80vh; overflow-y: auto; flex-direction: column;">
+            <div style="text-align: center; margin-bottom: 20px;">
+                <div style="font-size: 2.8rem; margin-bottom: 10px; color: #F87171;"><i class="ph-duotone ph-monitor-play" style="filter: drop-shadow(0 4px 8px rgba(248, 113, 113, 0.4));"></i></div>
+                <h3 style="font-family: var(--font-display); color: var(--text-primary); margin-bottom: 4px; font-size: 1.3rem;">Live Games</h3>
+                <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Spectate matches in progress</p>
+            </div>
+            
+            <div id="live-games-list" style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- Live games will be appended here via JS -->
+            </div>
+            
+            <div id="live-games-empty" style="display: none; text-align: center; color: var(--text-muted); font-size: 0.9rem; padding: 20px 0;">
+                No live games right now.
+            </div>
+        </div>
+    </div>
+
+
     <!-- Floating word bubbles (decorative) -->
     <div class="bubble bubble-1">hunt</div>
     <div class="bubble bubble-2">find</div>
@@ -283,6 +308,74 @@
     const errorBanner = document.getElementById('error-banner');
     if (errorBanner) {
         setTimeout(() => errorBanner.classList.add('fade-out'), 4000);
+    }
+
+    // Live Games Logic
+    const btnLiveGames = document.getElementById('btn-live-games');
+    const liveGamesDropdown = document.getElementById('live-games-dropdown');
+    const liveGamesList = document.getElementById('live-games-list');
+    const liveGamesEmpty = document.getElementById('live-games-empty');
+
+    async function fetchLiveGames() {
+        try {
+            const response = await fetch('/api/live-games/');
+            const data = await response.json();
+            
+            liveGamesList.innerHTML = '';
+            
+            if (data.games && data.games.length > 0) {
+                liveGamesEmpty.style.display = 'none';
+                data.games.forEach(game => {
+                    const row = document.createElement('a');
+                    row.href = `/spectate/${game.room_code}/`;
+                    row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: var(--radius-sm); padding: 12px 16px; text-decoration: none; color: inherit; transition: background 0.2s;';
+                    row.onmouseover = () => row.style.background = 'rgba(255,255,255,0.1)';
+                    row.onmouseout = () => row.style.background = 'rgba(255,255,255,0.05)';
+                    
+                    let stateDisplay = game.state;
+                    if (stateDisplay === 'round_end') stateDisplay = 'Round End';
+                    else stateDisplay = stateDisplay.charAt(0).toUpperCase() + stateDisplay.slice(1);
+                    
+                    row.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="width: 8px; height: 8px; border-radius: 50%; background: #F87171; box-shadow: 0 0 8px #F87171; animation: pulse 2s infinite;"></div>
+                            <div>
+                                <div style="font-family: var(--font-display); font-weight: bold; font-size: 1.2rem; color: var(--text-primary); letter-spacing: 2px;">${game.room_code}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">${stateDisplay}</div>
+                            </div>
+                        </div>
+                        <div style="text-align: right;">
+                            <div style="font-size: 0.9rem; font-weight: bold; color: var(--text-primary);"><i class="ph-duotone ph-users" style="color: #60A5FA;"></i> ${game.players_count}/${game.total_players}</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">Watch <i class="ph-bold ph-caret-right"></i></div>
+                        </div>
+                    `;
+                    liveGamesList.appendChild(row);
+                });
+            } else {
+                liveGamesEmpty.style.display = 'block';
+            }
+        } catch (e) {
+            console.error('Error fetching live games:', e);
+        }
+    }
+
+    if (btnLiveGames && liveGamesDropdown) {
+        btnLiveGames.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (liveGamesDropdown.style.display === 'none') {
+                liveGamesDropdown.style.display = 'flex';
+                liveGamesDropdown.style.animation = 'slideUp 0.2s ease-out';
+                fetchLiveGames();
+            } else {
+                liveGamesDropdown.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!liveGamesDropdown.contains(e.target) && e.target !== btnLiveGames) {
+                liveGamesDropdown.style.display = 'none';
+            }
+        });
     }
 </script>
 {% endblock %}

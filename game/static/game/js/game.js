@@ -140,6 +140,13 @@
         };
     }
 
+    // Force close WebSocket when leaving the page to prevent ghost connections
+    window.addEventListener('beforeunload', () => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.close();
+        }
+    });
+
     function send(data) {
         if (ws && ws.readyState === WebSocket.OPEN) {
             ws.send(JSON.stringify(data));
@@ -177,6 +184,9 @@
             case 'redirect_to_lobby':
                 window.location.href = `/lobby/${ROOM_CODE}/`;
                 break;
+            case 'spectator_update':
+                handleSpectatorUpdate(data);
+                break;
             case 'error':
                 console.warn('Server error:', data.message);
                 break;
@@ -192,6 +202,10 @@
         updateTurnBanner(data.current_picker, data.state);
         setWordClickMode(data.state, data.current_picker);
 
+        if (data.spectators) {
+            updateSpectatorsUI(data.spectators);
+        }
+
         // Restore hunting state on reconnect
         if (data.state === 'hunting') {
             const me = data.players.find(p => p.username === USERNAME);
@@ -205,6 +219,7 @@
     }
 
     function syncMyState(players) {
+        if (typeof IS_SPECTATOR !== 'undefined' && IS_SPECTATOR) return;
         const me = players.find(p => p.username === USERNAME);
         if (me) {
             myTimeBank = me.time_bank;
@@ -215,6 +230,41 @@
                 el.classList.add('visible');
                 setTimeout(() => el.classList.remove('visible'), 4000);
             }
+        }
+    }
+
+    // --- Spectators UI ---
+    function handleSpectatorUpdate(data) {
+        if (data.spectators) {
+            updateSpectatorsUI(data.spectators);
+        }
+    }
+
+    function updateSpectatorsUI(spectatorsList) {
+        const wrapper = document.getElementById('spectator-counter-wrapper');
+        const countText = document.getElementById('spectator-count-text');
+        const listContent = document.getElementById('spectator-list-content');
+
+        if (!wrapper || !countText || !listContent) return;
+
+        if (spectatorsList.length > 0) {
+            wrapper.style.display = 'flex';
+            countText.textContent = spectatorsList.length;
+            
+            listContent.innerHTML = '';
+            spectatorsList.forEach(spec => {
+                const row = document.createElement('div');
+                if (spec === USERNAME) {
+                    row.innerHTML = `${escapeHtml(spec)} <span style="color: var(--accent-cyan); font-size: 0.8em;">(You)</span>`;
+                } else {
+                    row.textContent = spec;
+                }
+                listContent.appendChild(row);
+            });
+        } else {
+            wrapper.style.display = 'none';
+            const dropdown = document.getElementById('spectator-list-dropdown');
+            if (dropdown) dropdown.style.display = 'none';
         }
     }
 
@@ -300,6 +350,9 @@
             const wordDisplay = gameState && gameState.chosen_word ? `'${gameState.chosen_word.toUpperCase()}'` : 'the word';
             if (currentPicker === USERNAME) {
                 text.textContent = `😎 You picked ${wordDisplay}. Sit back and watch!`;
+            } else if (typeof IS_SPECTATOR !== 'undefined' && IS_SPECTATOR) {
+                banner.classList.add('hunting');
+                text.textContent = `👀 Spectating... They are finding ${wordDisplay}!`;
             } else if (isEliminated) {
                 text.textContent = '👀 Watching...';
             } else {
@@ -411,6 +464,11 @@
     function setWordClickMode(state, currentPicker) {
         const words = document.querySelectorAll('.arena-word');
 
+        if (typeof IS_SPECTATOR !== 'undefined' && IS_SPECTATOR) {
+            words.forEach(w => w.classList.add('disabled'));
+            return;
+        }
+
         if (state === 'picking' && currentPicker === USERNAME && !isEliminated) {
             // Picker mode: can click any word
             words.forEach(w => w.classList.remove('disabled'));
@@ -490,7 +548,8 @@
         updateTurnBanner(gameState ? gameState.current_picker : '', 'hunting');
 
         // Start hunting if we are a hunter
-        if (gameState && gameState.current_picker !== USERNAME && !isEliminated) {
+        const isSpectator = typeof IS_SPECTATOR !== 'undefined' && IS_SPECTATOR;
+        if (gameState && gameState.current_picker !== USERNAME && !isEliminated && !isSpectator) {
             isHunting = true;
             myTimerStart = Date.now();
 
@@ -755,6 +814,10 @@
     const btnPlayAgain = document.getElementById('btn-play-again');
     if (btnPlayAgain) {
         btnPlayAgain.addEventListener('click', () => {
+            if (typeof IS_SPECTATOR !== 'undefined' && IS_SPECTATOR) {
+                window.location.href = '/';
+                return;
+            }
             send({ type: 'play_again' });
             btnPlayAgain.innerHTML = '<span class="btn-icon"><i class="ph-duotone ph-spinner-gap ph-spin" style="color: #FFF;"></i></span><span class="btn-text">Gathering...</span>';
             btnPlayAgain.disabled = true;
@@ -762,6 +825,52 @@
     }
 
     // --- Initialize ---
+    // Spectator dropdown toggle
+    const specWrapper = document.getElementById('spectator-counter-wrapper');
+    const specDropdown = document.getElementById('spectator-list-dropdown');
+    
+    if (specWrapper && specDropdown) {
+        specWrapper.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (specDropdown.style.display === 'none') {
+                specDropdown.style.display = 'flex';
+            } else {
+                specDropdown.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!specDropdown.contains(e.target) && e.target !== specWrapper && !specWrapper.contains(e.target)) {
+                specDropdown.style.display = 'none';
+            }
+        });
+    }
+
+    if (typeof IS_SPECTATOR !== 'undefined' && IS_SPECTATOR) {
+        // Change exit button behavior
+        const btnExit = document.querySelector('.btn-exit');
+        if (btnExit) {
+            btnExit.onclick = () => {
+                if (ws && ws.readyState === WebSocket.OPEN) ws.close();
+                window.location.href = '/';
+            };
+        }
+        
+        // Add spectator badge
+        const headerTop = document.querySelector('.header-top');
+        if (headerTop) {
+            const badge = document.createElement('span');
+            badge.className = 'spectator-badge';
+            badge.style.cssText = 'background: rgba(248, 113, 113, 0.2); color: #F87171; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; margin-left: 10px; border: 1px solid rgba(248, 113, 113, 0.3); display: flex; align-items: center; gap: 4px;';
+            badge.innerHTML = '<i class="ph-duotone ph-monitor-play"></i> Spectating';
+            
+            const roomCodeEl = document.querySelector('.header-room-code');
+            if (roomCodeEl && roomCodeEl.parentNode) {
+                roomCodeEl.parentNode.insertBefore(badge, roomCodeEl.nextSibling);
+            }
+        }
+    }
+
     connect();
 
 })();

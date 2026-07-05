@@ -134,20 +134,32 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
 
         room = ROOMS[self.room_code]
+        
         if self.username not in room.players:
-            await self.close()
-            return
-
-        # Mark player as connected (handles reconnection)
-        room.players[self.username].is_connected = True
+            self.role = 'spectator'
+            room.spectators.add(self.username)
+        else:
+            self.role = 'player'
+            # Mark player as connected (handles reconnection)
+            room.players[self.username].is_connected = True
 
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
+
+        if self.role == 'spectator':
+            await self.channel_layer.group_send(
+                self.group_name,
+                {
+                    'type': 'spectator_update',
+                    'spectators': list(room.spectators),
+                }
+            )
 
         # Send current game state to the connecting player
         await self.send(text_data=json.dumps({
             'type': 'game_state',
             **room.get_game_state(),
+            'role': self.role,
         }))
 
         if room.state == PICKING and not getattr(room, 'pick_timer_started', False):
@@ -160,6 +172,16 @@ class GameConsumer(AsyncWebsocketConsumer):
             if self.username in room.players:
                 player = room.players[self.username]
                 player.is_connected = False
+            elif getattr(self, 'role', None) == 'spectator':
+                if self.username in room.spectators:
+                    room.spectators.remove(self.username)
+                await self.channel_layer.group_send(
+                    self.group_name,
+                    {
+                        'type': 'spectator_update',
+                        'spectators': list(room.spectators),
+                    }
+                )
 
         await self.channel_layer.group_discard(self.group_name, self.channel_name)
 
@@ -171,6 +193,10 @@ class GameConsumer(AsyncWebsocketConsumer):
             return
 
         room = ROOMS[self.room_code]
+        
+        # Spectators cannot send game commands
+        if getattr(self, 'role', 'player') == 'spectator':
+            return
 
         if msg_type == 'pick_word':
             await self.handle_pick_word(room, data)
@@ -490,6 +516,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             'type': 'new_turn',
             'state': event['state'],
             'players': event['players'],
+            'spectators': event.get('spectators', []),
             'turn_order': event['turn_order'],
             'current_picker': event['current_picker'],
             'chosen_word': event.get('chosen_word'),
@@ -512,10 +539,17 @@ class GameConsumer(AsyncWebsocketConsumer):
             'type': 'game_state',
             'state': event['state'],
             'players': event['players'],
+            'spectators': event.get('spectators', []),
             'turn_order': event['turn_order'],
             'current_picker': event['current_picker'],
             'chosen_word': event.get('chosen_word'),
             'board': event['board'],
             'room_code': event['room_code'],
             'creator': event['creator'],
+        }))
+
+    async def spectator_update(self, event):
+        await self.send(text_data=json.dumps({
+            'type': 'spectator_update',
+            'spectators': event['spectators'],
         }))

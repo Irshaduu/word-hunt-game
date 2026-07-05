@@ -12,5 +12,7 @@ urlpatterns = [
     path('lobby/<str:room_code>/', views.lobby, name='lobby'),
     path('game/<str:room_code>/', views.game_view, name='game_view'),
     path('api/leaderboard/', views.api_leaderboard, name='api_leaderboard'),
+    path('api/live-games/', views.api_live_games, name='api_live_games'),
+    path('spectate/<str:room_code>/', views.spectate_view, name='spectate_view'),
     path('sw.js', TemplateView.as_view(template_name='game/sw.js', content_type='application/javascript'), name='sw.js'),
 ]

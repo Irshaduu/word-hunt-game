@@ -12,7 +12,22 @@
     <!-- Header: Scoreboard -->
     <div class="game-header" id="game-header">
         <div class="header-top">
-            <span class="header-room-code"><i class="ph-duotone ph-magnifying-glass" style="color: #67E8F9;"></i> {{ room_code }}</span>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <span class="header-room-code"><i class="ph-duotone ph-magnifying-glass" style="color: #67E8F9;"></i> {{ room_code }}</span>
+                <!-- Spectator Eye Icon & Count -->
+                <div id="spectator-counter-wrapper" style="display: none; position: relative; cursor: pointer; align-items: center; gap: 4px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 4px 10px; color: #F87171; font-weight: bold; font-size: 0.9rem;">
+                    <i class="ph-duotone ph-eye" style="font-size: 1.1rem; filter: drop-shadow(0 2px 4px rgba(248, 113, 113, 0.3));"></i>
+                    <span id="spectator-count-text">0</span>
+                    
+                    <!-- Spectator Dropdown -->
+                    <div id="spectator-list-dropdown" class="glass-card" style="display: none; position: absolute; top: calc(100% + 8px); left: 0; min-width: 150px; padding: 12px; z-index: 100; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1); cursor: default; flex-direction: column;">
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; font-weight: bold;">Spectators</div>
+                        <div id="spectator-list-content" style="display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto; color: var(--text-primary); font-size: 0.9rem;">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
             <button class="btn-exit" onclick="document.getElementById('exit-overlay').classList.add('visible')"><i class="ph-duotone ph-x"></i> Exit</button>
         </div>
         <div class="scoreboard" id="scoreboard">
@@ -109,6 +124,7 @@
 <script>
     const ROOM_CODE = '{{ room_code }}';
     const USERNAME = '{{ username }}';
+    const IS_SPECTATOR = {{ is_spectator|yesno:"true,false" }};
 </script>
 <script src="{% static 'game/js/game.js' %}?v=5"></script>
 {% endblock %}
