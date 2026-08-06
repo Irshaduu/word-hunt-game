@@ -30,7 +30,7 @@ This game is designed to operate at zero recurring infrastructure cost:
 | Component | Choice | Cost |
 |-----------|--------|------|
 | Hosting | Render Free Tier | $0 |
-| Database | SQLite (file-based) | $0 |
+| Database | Neon PostgreSQL (free tier, cloud-hosted) | $0 |
 | Message Broker | InMemoryChannelLayer (no Redis) | $0 |
 | Static Files | WhiteNoise (no CDN) | $0 |
 | Game Sound Effects | Web Audio API (synthesized, no files) | $0 |
@@ -45,12 +45,12 @@ The system comfortably supports the intended usage pattern of friends, family, a
 - **Backend:** Python 3.12, Django 5.1, Django Channels 4.1 (WebSockets)
 - **ASGI Server:** Daphne (serves both HTTP and WebSocket traffic)
 - **State Management:** Pure in-memory — global `ROOMS` dict for game state, `InMemoryChannelLayer` for WebSocket groups. Zero external dependencies.
-- **Database:** SQLite — only used for user accounts, profiles, and session storage.
+- **Database:** PostgreSQL (Neon free tier) — used for user accounts, profiles, and session storage. Falls back to SQLite automatically when no `DB_HOST` env var is set (local development).
 - **Frontend:** HTML5, Vanilla JavaScript (IIFE pattern), CSS3 with custom properties — no frameworks, no build step.
 - **Static Files:** WhiteNoise with `CompressedManifestStaticFilesStorage` for compression and cache-busting.
 - **Fonts:** Google Fonts (Fredoka, Baloo 2, Bubblegum Sans, Chewy, Boogaloo, Righteous, Nunito)
 - **Icons:** Phosphor Icons (duotone set)
-- **Dependencies:** Only 4 — `django`, `channels`, `daphne`, `whitenoise`
+- **Dependencies:** 6 — `django`, `channels`, `daphne`, `whitenoise`, `psycopg2-binary`, `python-decouple`
 
 ## How to Play 🎮
 
@@ -114,17 +114,29 @@ Client (Browser)                    Server (Render)
    pip install -r requirements.txt
    ```
 
-4. Run database migrations:
+4. Configure environment variables:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your values.
+   # Leave DB_HOST empty (or unset) to use SQLite locally.
+   ```
+
+5. Run database migrations:
    ```bash
    python manage.py migrate
    ```
 
-5. Start the development server (uses Daphne for WebSockets):
+6. Run the test suite:
+   ```bash
+   python manage.py test game.tests --verbosity=2
+   ```
+
+7. Start the development server (uses Daphne for WebSockets):
    ```bash
    python manage.py runserver
    ```
 
-6. Open your browser to `http://127.0.0.1:8000`. Open a second incognito window to test multiplayer!
+8. Open your browser to `http://127.0.0.1:8000`. Open a second incognito window to test multiplayer!
 
 ## Deploy to Render 🌐
 
@@ -133,7 +145,14 @@ Client (Browser)                    Server (Render)
 3. Set the following:
    - **Build Command:** `pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate`
    - **Start Command:** `daphne -b 0.0.0.0 -p $PORT wordhunt.asgi:application`
-4. Add environment variables:
-   - `DJANGO_SECRET_KEY` — a strong random secret key
-   - `DJANGO_DEBUG` — `False`
+4. Add environment variables in the Render dashboard:
+   | Variable | Value |
+   |---|---|
+   | `DJANGO_SECRET_KEY` | A strong random secret key |
+   | `DJANGO_DEBUG` | `False` |
+   | `DB_NAME` | Your Neon database name |
+   | `DB_USER` | Your Neon database user |
+   | `DB_PASSWORD` | Your Neon database password |
+   | `DB_HOST` | Your Neon host (e.g. `ep-xxx.aws.neon.tech`) |
+   | `DB_PORT` | `5432` |
 5. Deploy! Render provides free HTTPS which enables WebSocket (`wss://`), Screen Wake Lock, and PWA installation.

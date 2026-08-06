@@ -6,3 +6,7 @@ __pycache__/
 .idea/
 .vscode/
 *.log
+db.sqlite3
+staticfiles/
+commit_message.txt
+test_500.py

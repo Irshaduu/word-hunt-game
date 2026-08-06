@@ -18,8 +18,8 @@ Most real-time web applications default to using managed services (e.g., managed
 
 To achieve a true $0 operating cost while supporting our target audience, we made the following intentional design trade-offs:
 
-- **Ephemeral SQLite vs. Persistent Database:** We utilize an SQLite file (`db.sqlite3`) for user profiles and leaderboards. On Render's Free Tier, the filesystem is ephemeral, meaning database resets occur during deployments or prolonged sleep states. 
-- **The UptimeBot Strategy:** To prevent the Render service from entering its 15-minute inactivity sleep cycle (which would wipe the SQLite database and cause cold-start delays), we implemented an external UptimeBot. This is a pragmatic, zero-cost DevOps mitigation strategy that helps minimize sleep cycles and cold starts without requiring a paid persistent volume.
+- **Neon PostgreSQL vs. SQLite:** User profiles, leaderboard stats, and sessions are stored in a managed PostgreSQL instance on [Neon](https://neon.tech) (free tier). This provides true persistence that survives Render service restarts and deployments — the root cause of the original ephemeral data loss on free-tier SQLite. Neon's free tier (0.5 GB) is more than sufficient for the intended user base.
+- **Local Development Fallback:** When the `DB_HOST` environment variable is absent (i.e., on a developer's machine), `settings.py` automatically falls back to SQLite. This means contributors can clone and run the project locally with zero external setup — no Neon account or credentials required.
 
 ## 3. In-Memory State Management & YAGNI
 
