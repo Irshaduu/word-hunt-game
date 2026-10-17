@@ -1,11 +1,11 @@
 """
-Tests for the one-tap demo and practice games against Poocha:
-- a practice room seats Poocha, so one person can start a game
-- Poocha never becomes host, never loses its seat to a person, and comes back after Play Again
+Tests for the one-tap demo and practice games against Robo:
+- a practice room seats Robo, so one person can start a game
+- Robo never becomes host, never loses its seat to a person, and comes back after Play Again
 - the demo signs in a throwaway guest (no PIN) and opens a practice room
 - the demo is limited per address, and yesterday's guests are deleted
-- guests stay off the global leaderboard; nobody can register as Poocha
-- Poocha picks on its turn and finds the word on the hunt (socket code, no real waiting)
+- guests stay off the global leaderboard; nobody can register as Robo
+- Robo picks on its turn and finds the word on the hunt (socket code, no real waiting)
 - a practice game never touches the leaderboard, and a game ends once
 """
 
@@ -26,7 +26,7 @@ from game.game_manager import (
 
 
 class PracticeRoomTests(TestCase):
-    def test_practice_room_seats_poocha(self):
+    def test_practice_room_seats_robo(self):
         room = GameRoom('PRC', creator='Asha', practice=True)
         self.assertIn(BOT_NAME, room.players)
         self.assertEqual(room.human_count(), 0)
@@ -38,19 +38,19 @@ class PracticeRoomTests(TestCase):
         self.assertTrue(ok)
         self.assertEqual(room.state, PICKING)
 
-    def test_a_person_cannot_take_poochas_seat(self):
+    def test_a_person_cannot_take_robos_seat(self):
         room = GameRoom('PRC', creator='Asha', practice=True)
         ok, _ = room.add_player(BOT_NAME)
         self.assertFalse(ok)
 
-    def test_host_never_passes_to_poocha(self):
+    def test_host_never_passes_to_robo(self):
         room = GameRoom('PRC', creator='Asha', practice=True)
         room.add_player('Asha')
         room.remove_player('Asha')
         self.assertIsNone(room.creator)
         self.assertEqual(room.human_count(), 0)
 
-    def test_play_again_seats_poocha_again(self):
+    def test_play_again_seats_robo_again(self):
         room = GameRoom('PRC', creator='Asha', practice=True)
         room.add_player('Asha')
         room.start_game()
@@ -139,8 +139,8 @@ class DemoViewTests(TestCase):
         names = [p['username'] for p in self.client.get(reverse('api_leaderboard')).json()['players']]
         self.assertEqual(names, ['Asha'])
 
-    def test_nobody_can_register_as_poocha(self):
-        self.client.post(reverse('register'), {'username': 'poocha', 'pin': '1234'})
+    def test_nobody_can_register_as_robo(self):
+        self.client.post(reverse('register'), {'username': 'robo', 'pin': '1234'})
         self.assertFalse(User.objects.filter(username=BOT_NAME).exists())
 
 
@@ -168,7 +168,7 @@ def no_background(coro):
 
 @mock.patch('game.consumers.asyncio.ensure_future', no_background)
 @mock.patch('game.consumers.asyncio.sleep', mock.AsyncMock())
-class PoochaPlaysTests(TestCase):
+class RoboPlaysTests(TestCase):
     def setUp(self):
         ROOMS.clear()
         self.room = GameRoom('PRC', creator='Asha', practice=True)
@@ -179,7 +179,7 @@ class PoochaPlaysTests(TestCase):
     def tearDown(self):
         ROOMS.clear()
 
-    async def test_poocha_picks_on_its_turn(self):
+    async def test_robo_picks_on_its_turn(self):
         self.room.current_picker = BOT_NAME
         consumer = consumer_for(self.room)
         await consumer._bot_pick(self.room, self.room.pick_start_time)
@@ -200,7 +200,7 @@ class PoochaPlaysTests(TestCase):
         self.room.current_turn_index = 0
         self.room.current_picker = 'Asha'
 
-    async def test_poocha_finds_the_word_and_the_round_moves_on(self):
+    async def test_robo_finds_the_word_and_the_round_moves_on(self):
         self.asha_picks_first()
         self.room.pick_word('Asha', self.room.board[0]['word'])
         self.room.start_hunt()

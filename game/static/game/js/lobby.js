@@ -138,7 +138,13 @@
         "Neko": { emoji: "🐱", color: "rgba(255,107,157,0.2)" }
     };
 
+    // The practice opponent (BOT_NAME in game_manager.py). An exact match, so a player
+    // called "Robocop" keeps an animal.
+    const BOT_NAME = "Robo";
+    const BOT_AVATAR = { emoji: "🤖", color: "rgba(103,232,249,0.2)" };
+
     function getAvatarForName(name) {
+        if (name === BOT_NAME) return BOT_AVATAR;
         for (const [key, avatar] of Object.entries(SPECIAL_AVATARS)) {
             if (name.startsWith(key)) {
                 return avatar;

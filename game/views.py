@@ -132,7 +132,7 @@ def _new_guest():
 
 
 def demo_view(request):
-    """One tap from the landing page into a practice game against Poocha, no sign-up."""
+    """One tap from the landing page into a practice game against Robo, no sign-up."""
     if request.method != 'POST':
         return redirect('landing')
 
@@ -165,7 +165,7 @@ def create_room(request):
 
 @login_required(login_url='/')
 def practice_room(request):
-    """A room with Poocha already in it, so one person can play a real game."""
+    """A room with Robo already in it, so one person can play a real game."""
     room_code = generate_room_code()
     ROOMS[room_code] = GameRoom(room_code, creator=request.user.username, practice=True)
     return redirect('lobby', room_code=room_code)

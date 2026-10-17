@@ -13,17 +13,17 @@ from .words import get_random_board
 # Global registry of active rooms
 ROOMS = {}
 
-# The practice opponent. The lobby already draws this name as a cat.
-BOT_NAME = 'Poocha'
+# The practice opponent. The lobby draws it as a robot (lobby.js, BOT_NAME).
+BOT_NAME = 'Robo'
 
 
 def bot_pick_delay():
-    """Seconds Poocha looks at the board before picking a word."""
+    """Seconds Robo looks at the board before picking a word."""
     return random.uniform(2.0, 4.0)
 
 
 def bot_find_delay():
-    """Seconds Poocha takes to find the word: quick enough to race, slow enough to beat."""
+    """Seconds Robo takes to find the word: quick enough to race, slow enough to beat."""
     return random.uniform(5.0, 14.0)
 
 
@@ -91,7 +91,7 @@ class GameRoom:
     def __init__(self, room_code, creator, practice=False):
         self.room_code = room_code
         self.creator = creator
-        self.practice = practice     # Poocha plays too, and nothing reaches the leaderboard
+        self.practice = practice     # Robo plays too, and nothing reaches the leaderboard
         self.players = {}            # {username: PlayerState}
         self.spectators = set()      # {username}
         self.player_order = []       # Join order (for lobby display)
@@ -156,7 +156,7 @@ class GameRoom:
                 if username in self.player_order:
                     self.player_order.remove(username)
                 
-                # If host leaves, assign to the next person who joined (never Poocha)
+                # If host leaves, assign to the next person who joined (never Robo)
                 if username == self.creator:
                     self.creator = next((u for u in self.player_order if not self.is_bot(u)), None)
             else:

@@ -68,7 +68,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             room = ROOMS[self.room_code]
             room.remove_player(self.username)
 
-            # If no person is left in the lobby (Poocha doesn't count), delete it to free memory
+            # If no person is left in the lobby (Robo doesn't count), delete it to free memory
             if room.state == 'lobby' and room.human_count() == 0:
                 del ROOMS[self.room_code]
             else:
@@ -282,7 +282,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self._pick_for(room, picker_username)
 
     async def _pick_for(self, room, picker_username):
-        """Pick a random board word for a picker who hasn't: an idle player, or Poocha."""
+        """Pick a random board word for a picker who hasn't: an idle player, or Robo."""
         board_words = [w['word'] for w in room.board]
         if not board_words:
             return
@@ -304,14 +304,14 @@ class GameConsumer(AsyncWebsocketConsumer):
             asyncio.ensure_future(self._bot_pick(room, room.pick_start_time))
 
     async def _bot_pick(self, room, pick_start_time):
-        """Poocha's turn: look at the board for a moment, then pick."""
+        """Robo's turn: look at the board for a moment, then pick."""
         await asyncio.sleep(bot_pick_delay())
         # pick_start_time names the turn, so a late wake-up never acts on a later one.
         if ROOMS.get(room.room_code) is room and room.state == PICKING and room.pick_start_time == pick_start_time:
             await self._pick_for(room, room.current_picker)
 
     async def _bot_hunt(self, room, bot_name, pick_start_time):
-        """Poocha hunts like a player: after a human-ish pause it finds the word."""
+        """Robo hunts like a player: after a human-ish pause it finds the word."""
         await asyncio.sleep(bot_find_delay())
         if ROOMS.get(room.room_code) is room and room.state == HUNTING and room.pick_start_time == pick_start_time:
             await self._claim_found(room, bot_name, room.chosen_word)
@@ -397,7 +397,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             }))
 
     async def _claim_found(self, room, username, word):
-        """A player (or Poocha) found the word: score it and tell the room. Returns an error or None."""
+        """A player (or Robo) found the word: score it and tell the room. Returns an error or None."""
         success, time_taken, error = room.player_found_word(username, word)
         if not success:
             return error
@@ -507,7 +507,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         if winner and winner in room.players:
             winner_time = round(room.players[winner].time_bank, 1)
 
-        # Practice games against Poocha never touch the global leaderboard.
+        # Practice games against Robo never touch the global leaderboard.
         if winner and winner in room.players and not room.practice:
             # Update stats in DB
             from channels.db import database_sync_to_async

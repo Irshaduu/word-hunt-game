@@ -14,7 +14,7 @@ A real-time, multiplayer word-finding game built with **Django** and **WebSocket
 - **Reconnection Handling:** Players are soft-disconnected on connection loss, allowing safe browser refreshes without being kicked from the game. Clients reconnect with exponential backoff and receive a full state sync.
 - **Authentication:** Username + 4-character PIN registration system with persistent player profiles. WebSockets act as the signed-in user from the session cookie (`AuthMiddlewareStack`), never as a name in the URL.
 - **One-tap Demo:** "Try the demo" on the landing page signs in a throwaway guest (no PIN, so nobody can sign in to it again) and opens a practice game. Guests stay off the global leaderboard, are deleted after a day, and each address can make 10 an hour.
-- **Practice with Poocha 🐱:** A practice room seats Poocha, a server-side player that picks a word on its turn and finds yours after 5–14 seconds, so one person can play a real game. Practice games never touch the leaderboard.
+- **Practice with Robo 🤖:** A practice room seats Robo, a server-side player that picks a word on its turn and finds yours after 5–14 seconds, so one person can play a real game. Practice games never touch the leaderboard.
 - **Player Profiles & Stats:** Tracks total earned seconds, 1st–5th place finishes, and global rank across all games.
 - **Global Leaderboard:** Paginated leaderboard showing top hunters worldwide, accessible from the landing page.
 - **Installable PWA:** Service worker + web manifest allows players to install Word Hunt as a native-like app on mobile.
