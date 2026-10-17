@@ -11,6 +11,8 @@ class PlayerProfile(models.Model):
     third_places = models.IntegerField(default=0)
     fourth_places = models.IntegerField(default=0)
     fifth_places = models.IntegerField(default=0)
+    # A one-tap demo account: kept off the global leaderboard and deleted after a day.
+    is_guest = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.user.username}'s Profile"

@@ -6,9 +6,13 @@ GameConsumer — handles all in-game real-time communication.
 
 import json
 import asyncio
+import random
 import time as time_mod
 from channels.generic.websocket import AsyncWebsocketConsumer
-from .game_manager import ROOMS, GameRoom, PICKING, SHOWING, HUNTING, ROUND_END, GAME_OVER
+from .game_manager import (
+    ROOMS, GameRoom, PICKING, SHOWING, HUNTING, ROUND_END, GAME_OVER,
+    bot_pick_delay, bot_find_delay,
+)
 
 
 def get_username_from_scope(scope):
@@ -64,8 +68,8 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             room = ROOMS[self.room_code]
             room.remove_player(self.username)
 
-            # If room is empty lobby, delete it to free memory
-            if room.state == 'lobby' and len(room.players) == 0:
+            # If no person is left in the lobby (Poocha doesn't count), delete it to free memory
+            if room.state == 'lobby' and room.human_count() == 0:
                 del ROOMS[self.room_code]
             else:
                 # Broadcast updated player list
@@ -179,6 +183,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         if room.state == PICKING and not getattr(room, 'pick_timer_started', False):
             room.pick_timer_started = True
             asyncio.ensure_future(self._auto_pick_timer(room, room.pick_start_time, room.current_picker))
+            self._schedule_bot_pick(room)
 
     async def disconnect(self, close_code):
         if hasattr(self, 'room_code') and self.room_code in ROOMS:
@@ -274,21 +279,42 @@ class GameConsumer(AsyncWebsocketConsumer):
         if getattr(self, 'room_code', None) not in ROOMS:
             return
         if room.state == PICKING and room.pick_start_time == pick_start_time:
-            import random
-            board_words = [w['word'] for w in room.board]
-            if board_words:
-                random_word = random.choice(board_words)
-                success, error = room.pick_word(picker_username, random_word)
-                if success:
-                    await self.channel_layer.group_send(
-                        self.group_name,
-                        {
-                            'type': 'word_picked',
-                            'word': random_word,
-                            'picker': picker_username,
-                        }
-                    )
-                    asyncio.ensure_future(self._wait_and_start_hunt(room))
+            await self._pick_for(room, picker_username)
+
+    async def _pick_for(self, room, picker_username):
+        """Pick a random board word for a picker who hasn't: an idle player, or Poocha."""
+        board_words = [w['word'] for w in room.board]
+        if not board_words:
+            return
+        random_word = random.choice(board_words)
+        success, error = room.pick_word(picker_username, random_word)
+        if success:
+            await self.channel_layer.group_send(
+                self.group_name,
+                {
+                    'type': 'word_picked',
+                    'word': random_word,
+                    'picker': picker_username,
+                }
+            )
+            asyncio.ensure_future(self._wait_and_start_hunt(room))
+
+    def _schedule_bot_pick(self, room):
+        if room.is_bot(room.current_picker):
+            asyncio.ensure_future(self._bot_pick(room, room.pick_start_time))
+
+    async def _bot_pick(self, room, pick_start_time):
+        """Poocha's turn: look at the board for a moment, then pick."""
+        await asyncio.sleep(bot_pick_delay())
+        # pick_start_time names the turn, so a late wake-up never acts on a later one.
+        if ROOMS.get(room.room_code) is room and room.state == PICKING and room.pick_start_time == pick_start_time:
+            await self._pick_for(room, room.current_picker)
+
+    async def _bot_hunt(self, room, bot_name, pick_start_time):
+        """Poocha hunts like a player: after a human-ish pause it finds the word."""
+        await asyncio.sleep(bot_find_delay())
+        if ROOMS.get(room.room_code) is room and room.state == HUNTING and room.pick_start_time == pick_start_time:
+            await self._claim_found(room, bot_name, room.chosen_word)
 
     async def _wait_and_start_hunt(self, room):
         # Wait 6.0 seconds for the popup
@@ -305,6 +331,9 @@ class GameConsumer(AsyncWebsocketConsumer):
                 'players': room.get_player_list(),
             }
         )
+
+        for bot_name in room.bot_hunters():
+            asyncio.ensure_future(self._bot_hunt(room, bot_name, room.pick_start_time))
 
         # Start a background task to monitor time-outs
         asyncio.ensure_future(self.monitor_timers(room))
@@ -360,25 +389,28 @@ class GameConsumer(AsyncWebsocketConsumer):
 
     async def handle_found_word(self, room, data):
         """Handle a player claiming they found the word."""
-        word = data.get('word', '')
-
-        success, time_taken, error = room.player_found_word(self.username, word)
-        if not success:
+        error = await self._claim_found(room, self.username, data.get('word', ''))
+        if error:
             await self.send(text_data=json.dumps({
                 'type': 'error',
                 'message': error,
             }))
-            return
+
+    async def _claim_found(self, room, username, word):
+        """A player (or Poocha) found the word: score it and tell the room. Returns an error or None."""
+        success, time_taken, error = room.player_found_word(username, word)
+        if not success:
+            return error
 
         # Check if this player was eliminated (time ran out right at the buzzer)
-        player = room.players[self.username]
+        player = room.players[username]
 
         # Broadcast: player found the word
         await self.channel_layer.group_send(
             self.group_name,
             {
                 'type': 'player_found',
-                'username': self.username,
+                'username': username,
                 'time_taken': time_taken,
                 'words_found': player.words_found,
                 'time_bank': round(player.time_bank, 1),
@@ -392,7 +424,7 @@ class GameConsumer(AsyncWebsocketConsumer):
                 self.group_name,
                 {
                     'type': 'player_eliminated',
-                    'username': self.username,
+                    'username': username,
                     'players': room.get_player_list(),
                 }
             )
@@ -401,14 +433,18 @@ class GameConsumer(AsyncWebsocketConsumer):
         is_over, winner = room.check_game_over()
         if is_over:
             await self.broadcast_game_over(room, winner)
-            return
+            return None
 
         # Check if round is now complete
         if room.check_round_complete():
             await self.finish_round(room)
+        return None
 
     async def finish_round(self, room):
         """End the current round, process eliminations, advance to next turn."""
+        # A find and the timer loop can both see the round complete; only the first one ends it.
+        if room.state != HUNTING:
+            return
         newly_eliminated = room.end_round()
 
         # Broadcast eliminations
@@ -458,14 +494,21 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         room.pick_timer_started = True
         asyncio.ensure_future(self._auto_pick_timer(room, room.pick_start_time, next_picker))
+        self._schedule_bot_pick(room)
 
     async def broadcast_game_over(self, room, winner):
         """Broadcast the game over state with leaderboard."""
         room.state = GAME_OVER
+        # Two paths can reach the end at once; the stats and the message go out once.
+        if room.game_over_announced:
+            return
+        room.game_over_announced = True
         winner_time = 0
         if winner and winner in room.players:
             winner_time = round(room.players[winner].time_bank, 1)
 
+        # Practice games against Poocha never touch the global leaderboard.
+        if winner and winner in room.players and not room.practice:
             # Update stats in DB
             from channels.db import database_sync_to_async
             from django.contrib.auth.models import User

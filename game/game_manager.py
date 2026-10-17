@@ -13,6 +13,19 @@ from .words import get_random_board
 # Global registry of active rooms
 ROOMS = {}
 
+# The practice opponent. The lobby already draws this name as a cat.
+BOT_NAME = 'Poocha'
+
+
+def bot_pick_delay():
+    """Seconds Poocha looks at the board before picking a word."""
+    return random.uniform(2.0, 4.0)
+
+
+def bot_find_delay():
+    """Seconds Poocha takes to find the word: quick enough to race, slow enough to beat."""
+    return random.uniform(5.0, 14.0)
+
 
 def cleanup_stale_rooms():
     """Remove rooms that are stale (GAME_OVER for 10m, or inactive for 2h)."""
@@ -75,9 +88,10 @@ GAME_OVER = 'game_over'
 class GameRoom:
     """In-memory game state for a single room."""
 
-    def __init__(self, room_code, creator):
+    def __init__(self, room_code, creator, practice=False):
         self.room_code = room_code
         self.creator = creator
+        self.practice = practice     # Poocha plays too, and nothing reaches the leaderboard
         self.players = {}            # {username: PlayerState}
         self.spectators = set()      # {username}
         self.player_order = []       # Join order (for lobby display)
@@ -90,6 +104,24 @@ class GameRoom:
         self.show_start_time = None  # When the 3-sec popup started
         self.pick_start_time = None  # When picking phase started
         self.last_activity = time.time()
+        self.game_over_announced = False
+        if practice:
+            self._seat_bot()
+
+    def _seat_bot(self):
+        self.players[BOT_NAME] = PlayerState(BOT_NAME)
+        self.player_order.append(BOT_NAME)
+
+    def is_bot(self, username):
+        return self.practice and username == BOT_NAME
+
+    def human_count(self):
+        return sum(1 for u in self.players if not self.is_bot(u))
+
+    def bot_hunters(self):
+        """The bots hunting this turn: not picking, not out."""
+        return [u for u, p in self.players.items()
+                if self.is_bot(u) and u != self.current_picker and not p.is_eliminated]
 
     def update_activity(self):
         self.last_activity = time.time()
@@ -100,6 +132,8 @@ class GameRoom:
         if self.state == GAME_OVER:
             self.reset_to_lobby(username)
 
+        if self.is_bot(username):
+            return False, "That name is taken in this room"
         if len(self.players) >= 10:
             return False, "Room is full (max 10 players)"
         if username in self.players:
@@ -122,12 +156,9 @@ class GameRoom:
                 if username in self.player_order:
                     self.player_order.remove(username)
                 
-                # If host leaves, assign to next joinee
+                # If host leaves, assign to the next person who joined (never Poocha)
                 if username == self.creator:
-                    if self.player_order:
-                        self.creator = self.player_order[0]
-                    else:
-                        self.creator = None
+                    self.creator = next((u for u in self.player_order if not self.is_bot(u)), None)
             else:
                 self.players[username].is_connected = False
 
@@ -158,6 +189,7 @@ class GameRoom:
         self.state = PICKING
         self.pick_start_time = time.time()
         self.pick_timer_started = False
+        self.game_over_announced = False
 
         return True, None
 
@@ -362,3 +394,5 @@ class GameRoom:
             self.current_turn_index = 0
             self.pick_start_time = None
             self.show_start_time = None
+            if self.practice:
+                self._seat_bot()

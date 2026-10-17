@@ -3,14 +3,23 @@ HTTP views for Word Hunt.
 Handles landing page, room creation/joining, lobby, and game page rendering.
 """
 
+import secrets
+from datetime import timedelta
+
 from django.shortcuts import render, redirect
 from django.http import JsonResponse
+from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from .game_manager import ROOMS, GameRoom, generate_room_code
+from django.utils import timezone
+from .game_manager import ROOMS, GameRoom, generate_room_code, BOT_NAME
+
+# One-tap demo accounts
+GUEST_LIFETIME = timedelta(days=1)
+DEMO_LIMIT_PER_HOUR = 10  # per address, so nobody can mint accounts in a loop
 
 def landing(request):
     """Landing page — username entry + create/join room."""
@@ -41,8 +50,8 @@ def landing(request):
         context['fourth_places'] = profile.fourth_places
         context['fifth_places'] = profile.fifth_places
         
-        # Calculate global rank
-        global_rank = User.objects.filter(
+        # Calculate global rank (demo guests are not on the board)
+        global_rank = User.objects.exclude(profile__is_guest=True).filter(
             Q(profile__total_earned_seconds__gt=profile.total_earned_seconds) |
             Q(profile__total_earned_seconds=profile.total_earned_seconds, id__lt=request.user.id)
         ).count() + 1
@@ -67,7 +76,7 @@ def register_view(request):
             request.session['error'] = 'PIN must be maximum 4 characters'
             return redirect('landing')
 
-        if User.objects.filter(username=username).exists():
+        if username == BOT_NAME or User.objects.filter(username=username).exists():
             request.session['error'] = 'Username already taken'
             return redirect('landing')
 
@@ -100,6 +109,49 @@ def logout_view(request):
     return redirect('landing')
 
 
+def _client_ip(request):
+    # Behind the host's proxy the socket address is the proxy's; the first forwarded one is the visitor.
+    forwarded = request.META.get('HTTP_X_FORWARDED_FOR', '')
+    return forwarded.split(',')[0].strip() or request.META.get('REMOTE_ADDR', '')
+
+
+def _new_guest():
+    """A throwaway account with no PIN: nobody can sign in to it again."""
+    for _ in range(50):
+        name = f'Guest{secrets.randbelow(10000):04d}'
+        if not User.objects.filter(username=name).exists():
+            break
+    else:
+        raise RuntimeError('No free guest name')
+    user = User(username=name)
+    user.set_unusable_password()
+    user.save()
+    user.profile.is_guest = True
+    user.profile.save()
+    return user
+
+
+def demo_view(request):
+    """One tap from the landing page into a practice game against Poocha, no sign-up."""
+    if request.method != 'POST':
+        return redirect('landing')
+
+    if not request.user.is_authenticated:
+        key = f'demo:{_client_ip(request)}'
+        made = cache.get(key, 0)
+        if made >= DEMO_LIMIT_PER_HOUR:
+            request.session['error'] = 'Too many demo games from here. Try again in an hour.'
+            return redirect('landing')
+        cache.set(key, made + 1, 60 * 60)
+
+        # Yesterday's guests go before today's is made, so they never pile up.
+        User.objects.filter(profile__is_guest=True, date_joined__lt=timezone.now() - GUEST_LIFETIME).delete()
+        login(request, _new_guest())
+        request.session.set_expiry(int(GUEST_LIFETIME.total_seconds()))
+
+    return redirect('practice_room')
+
+
 @login_required(login_url='/')
 def create_room(request):
     """Create a new game room and redirect to lobby."""
@@ -108,6 +160,14 @@ def create_room(request):
     room = GameRoom(room_code, creator=username)
     ROOMS[room_code] = room
 
+    return redirect('lobby', room_code=room_code)
+
+
+@login_required(login_url='/')
+def practice_room(request):
+    """A room with Poocha already in it, so one person can play a real game."""
+    room_code = generate_room_code()
+    ROOMS[room_code] = GameRoom(room_code, creator=request.user.username, practice=True)
     return redirect('lobby', room_code=room_code)
 
 
@@ -174,7 +234,8 @@ def game_view(request, room_code):
 
 def api_leaderboard(request):
     """JSON endpoint for paginated global leaderboard."""
-    users = User.objects.select_related('profile').order_by('-profile__total_earned_seconds', 'id')
+    users = (User.objects.select_related('profile').exclude(profile__is_guest=True)
+             .order_by('-profile__total_earned_seconds', 'id'))
     paginator = Paginator(users, 25)
     page_num = request.GET.get('page', 1)
     page = paginator.get_page(page_num)

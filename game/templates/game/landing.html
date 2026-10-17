@@ -90,6 +90,16 @@
             </form>
         </div>
 
+        <!-- One tap in, no sign-up: a guest account and a practice game against Poocha. -->
+        <form method="post" action="{% url 'demo' %}" class="demo-form">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary demo-btn">
+                <span class="btn-icon"><i class="ph-duotone ph-play-circle" style="color: #67E8F9;"></i></span>
+                <span class="btn-text">Try the demo</span>
+            </button>
+            <p class="demo-note">Play a practice game against Poocha 🐱. No sign-up.</p>
+        </form>
+
         <p class="footer-note" style="line-height: 1.6;">
             Have fun with your <i class="ph-duotone ph-heart" style="color: #F472B6; filter: drop-shadow(0 2px 4px rgba(244, 114, 182, 0.4)); transform: scale(1.2); display: inline-block;"></i> Crew <span style="font-size: 0.75em; color: rgba(255,255,255,0.4); font-weight: 400; margin-left: 5px;">(In group calls & family gatherings)</span>
         </p>
@@ -118,6 +128,21 @@
         background: rgba(255,255,255,0.15);
         color: var(--text-primary);
         border-color: var(--accent-cyan);
+    }
+    .demo-form {
+        width: 100%;
+        margin-top: 16px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+    }
+    .demo-btn { width: 100%; }
+    .demo-note {
+        margin: 0;
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        text-align: center;
     }
 </style>
 
