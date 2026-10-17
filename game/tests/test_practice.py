@@ -194,8 +194,14 @@ class PoochaPlaysTests(TestCase):
         self.assertEqual(self.room.state, PICKING)
         self.assertEqual(consumer.channel_layer.sent, [])
 
-    async def test_poocha_finds_the_word_and_the_round_moves_on(self):
+    def asha_picks_first(self):
+        # start_game shuffles the turn order; fix it so the next turn is known.
+        self.room.turn_order = ['Asha', BOT_NAME]
+        self.room.current_turn_index = 0
         self.room.current_picker = 'Asha'
+
+    async def test_poocha_finds_the_word_and_the_round_moves_on(self):
+        self.asha_picks_first()
         self.room.pick_word('Asha', self.room.board[0]['word'])
         self.room.start_hunt()
         consumer = consumer_for(self.room)
@@ -207,7 +213,7 @@ class PoochaPlaysTests(TestCase):
         self.assertEqual(self.room.current_picker, BOT_NAME)
 
     async def test_a_round_ends_once(self):
-        self.room.current_picker = 'Asha'
+        self.asha_picks_first()
         self.room.pick_word('Asha', self.room.board[0]['word'])
         self.room.start_hunt()
         consumer = consumer_for(self.room)

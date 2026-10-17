@@ -35,8 +35,13 @@ class RoomCreationTests(TestCase):
         self.assertTrue(code.isupper())
 
     def test_generate_room_code_is_unique(self):
-        codes = {generate_room_code() for _ in range(10)}
-        # All generated codes must be unique strings
+        # A code is unique among open rooms, so each room is opened before the next code is made
+        # (as create_room does). Without that, two random codes match about once in 400 runs.
+        codes = set()
+        for _ in range(10):
+            code = generate_room_code()
+            ROOMS[code] = GameRoom(code, creator='Alice')
+            codes.add(code)
         self.assertEqual(len(codes), 10)
 
 
