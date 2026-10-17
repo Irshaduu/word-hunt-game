@@ -118,7 +118,7 @@
 
     // --- WebSocket Setup ---
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.host}/ws/game/${ROOM_CODE}/?username=${encodeURIComponent(USERNAME)}`;
+    const wsUrl = `${wsProtocol}//${window.location.host}/ws/game/${ROOM_CODE}/`;
 
     function connect() {
         ws = new WebSocket(wsUrl);

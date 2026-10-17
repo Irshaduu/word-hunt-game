@@ -68,7 +68,7 @@
 
     // --- WebSocket Setup ---
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${wsProtocol}//${window.location.host}/ws/lobby/${ROOM_CODE}/?username=${encodeURIComponent(USERNAME)}`;
+    const wsUrl = `${wsProtocol}//${window.location.host}/ws/lobby/${ROOM_CODE}/`;
 
     let ws = null;
     let reconnectAttempts = 0;

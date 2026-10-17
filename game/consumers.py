@@ -7,15 +7,19 @@ GameConsumer — handles all in-game real-time communication.
 import json
 import asyncio
 import time as time_mod
-from urllib.parse import parse_qs
 from channels.generic.websocket import AsyncWebsocketConsumer
 from .game_manager import ROOMS, GameRoom, PICKING, SHOWING, HUNTING, ROUND_END, GAME_OVER
 
 
 def get_username_from_scope(scope):
-    """Extract username from WebSocket query string (?username=XXX)."""
-    qs = parse_qs(scope.get('query_string', b'').decode('utf-8'))
-    return qs.get('username', ['Anonymous'])[0]
+    """The signed-in user's name, from the session (AuthMiddlewareStack), or None.
+
+    Never read from the query string: anyone can type a name into a URL.
+    """
+    user = scope.get('user')
+    if user is not None and user.is_authenticated:
+        return user.username
+    return None
 
 
 class LobbyConsumer(AsyncWebsocketConsumer):
@@ -25,6 +29,10 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         self.room_code = self.scope['url_route']['kwargs']['room_code'].upper()
         self.group_name = f'lobby_{self.room_code}'
         self.username = get_username_from_scope(self.scope)
+
+        if self.username is None:
+            await self.close()
+            return
 
         # Validate room exists
         if self.room_code not in ROOMS:
@@ -128,6 +136,10 @@ class GameConsumer(AsyncWebsocketConsumer):
         self.room_code = self.scope['url_route']['kwargs']['room_code'].upper()
         self.group_name = f'game_{self.room_code}'
         self.username = get_username_from_scope(self.scope)
+
+        if self.username is None:
+            await self.close()
+            return
 
         if self.room_code not in ROOMS:
             await self.close()
