@@ -165,8 +165,12 @@
 
             <!-- No one around? Robo plays a real game with you; nothing reaches the leaderboard. -->
             <a href="{% url 'practice_room' %}" class="btn btn-secondary practice-btn" id="btn-practice">
-                <span class="btn-icon">🤖</span>
-                <span class="btn-text">Practice with Robo</span>
+                <span class="robo-face" aria-hidden="true"><i></i></span>
+                <span class="practice-btn__words">
+                    <span class="practice-btn__title">Practice with Robo</span>
+                    <span class="practice-btn__sub">A real game, you and Robo</span>
+                </span>
+                <i class="ph-bold ph-caret-right practice-btn__go" aria-hidden="true"></i>
             </a>
         </div>
 
@@ -311,6 +315,33 @@
                 document.getElementById('room_code').focus();
             }
         });
+    }
+
+    // Practice with Robo: one tap makes one room. Robo thinks while the lobby loads, and the
+    // button is itself again if Back brings this page out of the browser's cache, or after a
+    // while in case the page never left.
+    const practiceBtn = document.getElementById('btn-practice');
+    if (practiceBtn) {
+        const practiceSub = practiceBtn.querySelector('.practice-btn__sub');
+        const practiceIdle = practiceSub.textContent;
+        let practiceReset;
+        const practiceReady = () => {
+            clearTimeout(practiceReset);
+            practiceBtn.removeAttribute('aria-busy');
+            practiceSub.textContent = practiceIdle;
+        };
+        practiceBtn.addEventListener('click', (e) => {
+            if (practiceBtn.getAttribute('aria-busy') === 'true') {
+                e.preventDefault();
+                return;
+            }
+            // A Ctrl, Cmd or Shift click opens a new tab or window; this page stays as it is.
+            if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+            practiceBtn.setAttribute('aria-busy', 'true');
+            practiceSub.textContent = 'Robo is getting ready…';
+            practiceReset = setTimeout(practiceReady, 10000);
+        });
+        window.addEventListener('pageshow', practiceReady);
     }
 
     // Auto-uppercase room code

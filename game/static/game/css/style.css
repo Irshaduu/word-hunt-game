@@ -315,11 +315,174 @@ html, body {
     border-top: 1px solid var(--border-glass);
 }
 
-/* --- Practice with Robo (a link dressed as a button) --- */
+/* --- Robo's face ---
+   A ball of blue glass with two white eyes: the face Irshad's Agent wears on his portfolio
+   (its 2026 look). Now and then Robo blinks and looks around. It is drawn in CSS, so it looks
+   the same on every phone, and it is Robo everywhere: the practice button, the guest page's
+   note, and Robo's avatar in the lobby (lobby.js). */
+.robo-face {
+    --face: 26px;
+    position: relative;
+    display: inline-block;
+    flex: none;
+    width: var(--face);
+    height: var(--face);
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 50% 28%, rgba(255, 255, 255, 0.3), transparent 46%),
+        radial-gradient(circle, #5aabff 0 34%, #3286ff 68%, #2a72ee 88%, #74b6ff 100%);
+    box-shadow:
+        0 0 0 calc(var(--face) * 0.07) rgba(38, 44, 56, 0.95),
+        0 0 calc(var(--face) * 0.6) rgba(60, 140, 255, 0.3),
+        inset 0 calc(var(--face) * -0.07) calc(var(--face) * 0.14) rgba(10, 40, 120, 0.45);
+}
+
+/* The eyes: one <i>, drawn by its ::before and ::after, so they turn and blink together. */
+.robo-face i {
+    position: absolute;
+    inset: 0;
+    transform-origin: 50% 36%;
+    animation: roboLook 11s ease-in-out infinite;
+}
+
+.robo-face i::before,
+.robo-face i::after {
+    content: '';
+    position: absolute;
+    top: 26%;
+    width: 9%;
+    height: 20%;
+    border-radius: 999px;
+    background: #fff;
+    box-shadow: 0 0 calc(var(--face) * 0.12) rgba(255, 255, 255, 0.55);
+}
+
+.robo-face i::before { left: 44.5%; }
+.robo-face i::after { left: 68.5%; }
+
+/* In a line of text (the guest page's note) */
+.robo-face--inline {
+    --face: 1.15em;
+    vertical-align: -0.25em;
+    margin: 0 0.1em;
+}
+
+/* Mostly still: a blink, a look to one side, then up to the other, another blink. */
+@keyframes roboLook {
+    0%, 27%, 100% { translate: 0 0; scale: 1 1; rotate: 0deg; }
+    27.8% { scale: 1 0.1; }
+    28.6% { scale: 1 1; }
+    40% { translate: 0 0; rotate: 0deg; }
+    45%, 54% { translate: -26% 3%; scale: 0.8 1; rotate: -5deg; }
+    60% { translate: 0 0; scale: 1 1; rotate: 0deg; }
+    66%, 73% { translate: 18% -4%; scale: 0.88 1; rotate: 4deg; }
+    79% { translate: 0 0; scale: 1 1; rotate: 0deg; }
+    88% { scale: 1 1; }
+    88.8% { scale: 1 0.1; }
+    89.6% { scale: 1 1; }
+}
+
+/* A pointer on the button: Robo looks at the words. */
+@keyframes roboGlance {
+    to { translate: 12% 2%; }
+}
+
+/* The lobby is loading: eyes up, wandering from side to side. */
+@keyframes roboThink {
+    0%, 100% { translate: -16% -9%; }
+    50% { translate: 16% -9%; }
+}
+
+/* --- Practice with Robo (a link dressed as a button) ---
+   Robo's face, what the button does in one line, and an arrow. A tap shows at once that it
+   worked: Robo thinks and the line says so until the lobby opens (landing_auth.html). */
 .practice-btn {
     width: 100%;
     margin-top: 12px;
+    justify-content: flex-start;
+    gap: 14px;
+    padding: 12px 16px 12px 14px;
+    text-align: left;
     text-decoration: none;
+    border-color: rgba(90, 171, 255, 0.32);
+    background: linear-gradient(135deg, rgba(50, 134, 255, 0.18), rgba(50, 134, 255, 0.04) 65%);
+}
+
+/* Above the button's hover shine (.btn::after) */
+.practice-btn > * {
+    position: relative;
+    z-index: 1;
+}
+
+.practice-btn .robo-face { --face: 38px; }
+
+.practice-btn__words {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+}
+
+.practice-btn__title {
+    font-size: 1.02rem;
+    line-height: 1.2;
+}
+
+.practice-btn__sub {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--text-secondary);
+}
+
+.practice-btn__go {
+    color: #74b6ff;
+    font-size: 1.05rem;
+    transition: translate 0.25s ease, opacity 0.25s ease;
+}
+
+.practice-btn:focus-visible {
+    outline: 2px solid #74b6ff;
+    outline-offset: 3px;
+}
+
+.practice-btn:focus-visible .robo-face i { animation: roboGlance 0.3s ease-out forwards; }
+.practice-btn:focus-visible .practice-btn__go { translate: 3px 0; }
+
+@media (hover: hover) {
+    .practice-btn:hover {
+        border-color: #5aabff;
+        background: linear-gradient(135deg, rgba(50, 134, 255, 0.26), rgba(50, 134, 255, 0.08) 65%);
+        box-shadow: 0 6px 24px rgba(50, 134, 255, 0.25);
+    }
+    .practice-btn:hover .robo-face i { animation: roboGlance 0.3s ease-out forwards; }
+    .practice-btn:hover .practice-btn__go { translate: 3px 0; }
+}
+
+.practice-btn[aria-busy="true"] {
+    cursor: progress;
+    border-color: #5aabff;
+}
+
+.practice-btn[aria-busy="true"] .robo-face i { animation: roboThink 2.4s ease-in-out infinite; }
+.practice-btn[aria-busy="true"] .practice-btn__sub { color: #9fcbff; }
+.practice-btn[aria-busy="true"] .practice-btn__go { opacity: 0.3; translate: 0 0; }
+
+/* The smallest phones: a little less face and air, so the title keeps to one line. */
+@media (max-width: 350px) {
+    .practice-btn { gap: 12px; padding: 12px; }
+    .practice-btn .robo-face { --face: 32px; }
+}
+
+/* Robo's seat in the lobby */
+.player-avatar .robo-face { --face: 32px; }
+
+/* With reduced motion Robo holds still, and looks up while the lobby loads. */
+@media (prefers-reduced-motion: reduce) {
+    .robo-face i { animation: none !important; }
+    .practice-btn[aria-busy="true"] .robo-face i { translate: 0 -9%; }
 }
 
 /* --- Username Display (Step 2 header) --- */

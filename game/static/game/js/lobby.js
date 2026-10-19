@@ -139,9 +139,9 @@
     };
 
     // The practice opponent (BOT_NAME in game_manager.py). An exact match, so a player
-    // called "Robocop" keeps an animal.
+    // called "Robocop" keeps an animal. It sits with its own glass face (.robo-face in style.css).
     const BOT_NAME = "Robo";
-    const BOT_AVATAR = { emoji: "🤖", color: "rgba(103,232,249,0.2)" };
+    const BOT_AVATAR = { emoji: '<span class="robo-face" aria-hidden="true"><i></i></span>', color: "transparent" };
 
     function getAvatarForName(name) {
         if (name === BOT_NAME) return BOT_AVATAR;

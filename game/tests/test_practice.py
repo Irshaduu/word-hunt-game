@@ -2,7 +2,7 @@
 Tests for the one-tap demo and practice games against Robo:
 - a practice room seats Robo, so one person can start a game
 - Robo never becomes host, never loses its seat to a person, and comes back after Play Again
-- the demo signs in a throwaway guest (no PIN) and opens a practice room
+- the demo signs in a throwaway guest (no PIN) and opens a practice room; home has Robo's button
 - the demo is limited per address, and yesterday's guests are deleted
 - guests stay off the global leaderboard; nobody can register as Robo
 - Robo picks on its turn and finds the word on the hunt (socket code, no real waiting)
@@ -127,6 +127,14 @@ class DemoViewTests(TestCase):
         response = self.client.post(reverse('demo'), follow=True)
         self.assertTemplateUsed(response, 'game/lobby.html')
         self.assertFalse(User.objects.filter(profile__is_guest=True).exists())
+
+    def test_home_has_the_robo_button(self):
+        User.objects.create_user(username='Asha', password='1234')
+        self.client.login(username='Asha', password='1234')
+        response = self.client.get(reverse('landing'))
+        self.assertContains(response, f'href="{reverse("practice_room")}" class="btn btn-secondary practice-btn"')
+        self.assertContains(response, 'class="robo-face"')
+        self.assertNotContains(response, '🤖')
 
     def test_practice_needs_sign_in(self):
         response = self.client.get(reverse('practice_room'))

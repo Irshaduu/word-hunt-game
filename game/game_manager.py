@@ -13,7 +13,7 @@ from .words import get_random_board
 # Global registry of active rooms
 ROOMS = {}
 
-# The practice opponent. The lobby draws it as a robot (lobby.js, BOT_NAME).
+# The practice opponent. The lobby draws it with its glass face (lobby.js, BOT_NAME).
 BOT_NAME = 'Robo'
 
 
