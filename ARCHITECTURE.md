@@ -74,5 +74,15 @@ Google sign-in uses Google's own button (Google Identity Services) and checks it
 
 Finished games between people are kept as `Match` and `MatchPlayer` rows. They're written in the same transaction as the stats, once per game, so Neon only wakes when a game ends.
 
+## 8. Friends and Who Is Online
+
+Friendships are rows people own, so they live in Postgres (`social/models.py`, rules in `social/rules.py`). Who is online is not, so it stays in memory (`social/presence.py`):
+
+- **One app-wide socket.** `base.html` loads `social/me.js` on every page for a signed-in player, and it keeps `/ws/me/` open. That socket carries friends' status, friend requests and, from Phase 4, invites and match offers. Each player's sockets join one channel-layer group (`user_<id>`), so a message reaches every open page of theirs.
+- **Presence is a counter.** A player is online while they have at least one `/ws/me/` open. They're "in a game" while a game page is open too. The last socket closing starts a 10-second grace before friends hear "offline", so moving between pages never flickers.
+- **Postgres is read only on events.** The friends list is loaded when a socket opens and when a friendship changes. Nothing is polled, so Neon still sleeps when nobody plays (rule 2 in [ROADMAP.md](ROADMAP.md)).
+- **Pages tell each other.** A friend-request button is an ordinary POST. The view writes the row, then `social/notify.py` sends `friend_request` or `friends_changed` to the players' groups, and their open pages update.
+- **A restart forgets presence**, and that's fine: every page's socket reconnects within seconds and rebuilds it.
+
 ---
 *By constraining the system to $0 and acknowledging the <200 user limit, these constraints led to custom state machines and a hybrid audio synthesis model, resulting in a lightweight and efficient MVP without introducing unnecessary infrastructure complexity.*

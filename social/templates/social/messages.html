@@ -1,0 +1,7 @@
+{% if messages %}
+<div class="page-messages">
+    {% for message in messages %}
+    <div class="{% if message.tags == 'error' %}error-banner{% else %}notice-banner{% endif %}" role="status">{{ message }}</div>
+    {% endfor %}
+</div>
+{% endif %}

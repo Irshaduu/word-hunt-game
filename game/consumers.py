@@ -20,7 +20,9 @@ from .game_manager import (
     ROOMS, GameRoom, LOBBY, PICKING, SHOWING, HUNTING, ROUND_END, GAME_OVER,
     bot_pick_delay, bot_find_delay,
 )
+from social import presence
 from .models import Match, MatchPlayer, PlayerProfile
+from .tasks import spawn
 
 logger = logging.getLogger(__name__)
 
@@ -36,24 +38,6 @@ CLOSE_CANNOT_JOIN = 4004
 
 # Places 1-5 of a finished game, as PlayerProfile counters.
 PLACE_FIELDS = ['first_places', 'second_places', 'third_places', 'fourth_places', 'fifth_places']
-
-# Timers and Robo's moves run as background tasks. The event loop keeps only a weak
-# reference to a task, so hold one until it ends, and log whatever kills it.
-_background_tasks = set()
-
-
-def spawn(coro):
-    task = asyncio.ensure_future(coro)
-    _background_tasks.add(task)
-    task.add_done_callback(_task_done)
-    return task
-
-
-def _task_done(task):
-    _background_tasks.discard(task)
-    if not task.cancelled() and task.exception() is not None:
-        logger.error('Background task failed', exc_info=task.exception())
-
 
 async def turn_away(consumer):
     """Refuse a socket so its page stops retrying: accept, then close with CLOSE_CANNOT_JOIN."""
@@ -297,6 +281,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         else:
             self.role = 'player'
             room.socket_opened(self.username, self.channel_name)  # back in the game, if they'd dropped
+            await presence.entered_game(self.scope['user'].id)    # friends see "in a game"
 
         self.last_sound_time = 0
 
@@ -325,6 +310,8 @@ class GameConsumer(AsyncWebsocketConsumer):
             self._schedule_bot_pick(room)
 
     async def disconnect(self, close_code):
+        if getattr(self, 'role', None) == 'player':
+            await presence.left_game(self.scope['user'].id)
         if hasattr(self, 'room_code') and self.room_code in ROOMS:
             room = ROOMS[self.room_code]
             if self.username in room.players:

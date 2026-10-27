@@ -1,0 +1,1 @@
+{% if person.profile.avatar_url %}<img class="profile-photo" src="{{ person.profile.avatar_url }}" alt="" referrerpolicy="no-referrer">{% else %}<span class="profile-photo profile-photo--letter profile-photo--sm" aria-hidden="true">{{ person.username|first }}</span>{% endif %}

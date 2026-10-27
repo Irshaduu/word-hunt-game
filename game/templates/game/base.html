@@ -14,13 +14,17 @@
     <!-- Phosphor icons: only the two weights the pages use, at a fixed version -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/bold/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css">
-    <link rel="preload" href="{% static 'game/css/style.css' %}?v=12" as="style">
-    <link rel="stylesheet" href="{% static 'game/css/style.css' %}?v=12">
+    <link rel="preload" href="{% static 'game/css/style.css' %}?v=14" as="style">
+    <link rel="stylesheet" href="{% static 'game/css/style.css' %}?v=14">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     {% block content %}{% endblock %}
     {% block scripts %}{% endblock %}
+    {% if request.user.is_authenticated %}
+    <!-- The app-wide socket: friends online, friend requests, invites -->
+    <script src="{% static 'social/me.js' %}"></script>
+    {% endif %}
 
     <!-- PWA Service Worker Registration -->
     <script>

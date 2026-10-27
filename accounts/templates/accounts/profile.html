@@ -7,6 +7,8 @@
     <div class="page-container">
         <a href="{% url 'landing' %}" class="btn-back"><i class="ph-bold ph-caret-left"></i> Home</a>
 
+        {% include "social/messages.html" %}
+
         <div class="card glass-card profile-card">
             <div class="profile-head">
                 {% if profile.avatar_url %}
@@ -30,7 +32,7 @@
             <div class="profile-places" title="Places 1 to 5">
                 <span>🥇 {{ places.0 }}</span><span>🥈 {{ places.1 }}</span><span>🥉 {{ places.2 }}</span><span>🥚 {{ places.3 }}</span><span>🩲 {{ places.4 }}</span>
             </div>
-            {% block profile_extra %}{% endblock %}
+            {% if not is_me %}{% include "social/profile_buttons.html" %}{% endif %}
         </div>
 
         <div class="card glass-card">

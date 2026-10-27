@@ -11,7 +11,7 @@ from unittest import mock
 from django.contrib.auth.models import User
 from django.test import SimpleTestCase, TransactionTestCase
 
-from game.consumers import spawn
+from game.tasks import spawn
 from game.game_manager import ROOMS, GameRoom
 from game.models import Match, MatchPlayer, PlayerProfile
 from game.tests.test_practice import consumer_for
@@ -61,7 +61,7 @@ class BackgroundTaskTests(SimpleTestCase):
         async def crash():
             raise RuntimeError('timer broke')
 
-        with self.assertLogs('game.consumers', level='ERROR') as logs:
+        with self.assertLogs('game.tasks', level='ERROR') as logs:
             await asyncio.gather(spawn(crash()), return_exceptions=True)
             await asyncio.sleep(0)  # let the task's done-callback run
         self.assertIsInstance(logs.records[0].exc_info[1], RuntimeError)

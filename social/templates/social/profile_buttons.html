@@ -1,0 +1,51 @@
+{% comment %}Friend buttons on someone else's profile; `relationship` comes from social/rules.py.{% endcomment %}
+{% if not profile.is_guest and not request.user.profile.is_guest %}
+<div class="friend-buttons">
+    {% if relationship == 'none' %}
+    <form method="post" action="{% url 'add_friend' %}">
+        {% csrf_token %}
+        <input type="hidden" name="name" value="{{ player.username }}">
+        <input type="hidden" name="next" value="{{ request.path }}">
+        <button type="submit" class="btn btn-primary"><span class="btn-text"><i class="ph-duotone ph-user-plus"></i> Add friend</span></button>
+    </form>
+    {% elif relationship == 'sent' %}
+    <span class="friend-state"><i class="ph-duotone ph-paper-plane-tilt"></i> Request sent</span>
+    <form method="post" action="{% url 'friend_action' 'cancel' player.username %}">
+        {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+        <button type="submit" class="btn-small">Cancel</button>
+    </form>
+    {% elif relationship == 'received' %}
+    <form method="post" action="{% url 'friend_action' 'accept' player.username %}">
+        {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+        <button type="submit" class="btn btn-primary"><span class="btn-text">Accept friend request</span></button>
+    </form>
+    {% elif relationship == 'friends' %}
+    <span class="friend-state friend-state--yes"><i class="ph-duotone ph-check-circle"></i> Friends</span>
+    <span class="friend-status" data-friend="{{ player.username }}" data-status="{{ status }}"></span>
+    {% elif relationship == 'blocked' %}
+    <span class="friend-state">You blocked {{ player.username }}</span>
+    <form method="post" action="{% url 'friend_action' 'unblock' player.username %}">
+        {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+        <button type="submit" class="btn-small">Unblock</button>
+    </form>
+    {% endif %}
+
+    {% if relationship != 'blocked' %}
+    <details class="row-menu">
+        <summary aria-label="More for {{ player.username }}"><i class="ph-bold ph-dots-three"></i></summary>
+        <div class="row-menu__items">
+            {% if relationship == 'friends' %}
+            <form method="post" action="{% url 'friend_action' 'remove' player.username %}">
+                {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+                <button type="submit">Remove friend</button>
+            </form>
+            {% endif %}
+            <form method="post" action="{% url 'friend_action' 'block' player.username %}">
+                {% csrf_token %}<input type="hidden" name="next" value="{{ request.path }}">
+                <button type="submit">Block {{ player.username }}</button>
+            </form>
+        </div>
+    </details>
+    {% endif %}
+</div>
+{% endif %}

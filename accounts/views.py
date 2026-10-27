@@ -6,13 +6,15 @@ from django.contrib.auth import login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.db import IntegrityError, transaction
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.views.decorators.http import require_POST
 
 from game.models import MatchPlayer, PlayerProfile
 from game.stats import global_rank
+from social import presence, rules
+from social.models import Block
 from . import google, names
 
 ONE_YEAR = 60 * 60 * 24 * 365
@@ -113,7 +115,7 @@ def _ordinal(n):
     return {1: '1st', 2: '2nd', 3: '3rd'}.get(n, f'{n}th')
 
 
-def _profile_page(request, user, is_me):
+def _profile_page(request, user, is_me, **extra):
     """A player's profile: their numbers and their last games, with whom."""
     results = list(
         MatchPlayer.objects.filter(user=user).select_related('match').order_by('-match__ended_at')[:RECENT_GAMES]
@@ -142,6 +144,7 @@ def _profile_page(request, user, is_me):
             'seconds_left': r.seconds_left,
             'others': others[r.match_id],
         } for r in results],
+        **extra,
     })
 
 
@@ -155,7 +158,11 @@ def profile(request, username):
     user = get_object_or_404(User.objects.select_related('profile'), username=username)
     if user == request.user:
         return redirect('my_profile')
-    return _profile_page(request, user, is_me=False)
+    if Block.objects.filter(blocker=user, blocked=request.user).exists():
+        raise Http404  # someone who blocked you is nowhere to be found
+    return _profile_page(request, user, is_me=False,
+                         relationship=rules.relationship(request.user, user),
+                         status=presence.status(user.id))
 
 
 @login_required(login_url='/')

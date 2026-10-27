@@ -27,6 +27,7 @@ INSTALLED_APPS = [
     'channels',
     'game',
     'accounts',
+    'social',
 ]
 
 MIDDLEWARE = [

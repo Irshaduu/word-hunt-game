@@ -18,6 +18,12 @@
             <i class="ph-duotone ph-globe" style="color: #60A5FA; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i>
         </button>
 
+        <!-- Friends Button: the badge counts friend requests, kept current by social/me.js -->
+        <a href="{% url 'friends' %}" id="btn-friends" class="btn btn-secondary" style="position: relative; border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-color: rgba(255,255,255,0.2); text-decoration: none;" title="Friends">
+            <i class="ph-duotone ph-users-three" style="color: #34D399; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i>
+            <span class="request-badge" data-friend-requests {% if not friend_requests %}hidden{% endif %}>{{ friend_requests }}</span>
+        </a>
+
         <!-- Profile Button -->
         <button type="button" id="btn-profile" class="btn btn-secondary" style="border-radius: 50%; width: 40px; height: 40px; padding: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); border-color: rgba(255,255,255,0.2);" title="Profile">
             <i class="ph-duotone ph-user" style="color: #C084FC; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i>

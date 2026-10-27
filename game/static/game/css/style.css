@@ -1673,3 +1673,240 @@ html, body {
     border-radius: 50%;
     object-fit: cover;
 }
+
+/* --- Friends --- */
+.page-messages {
+    width: 100%;
+    max-width: 480px;
+}
+
+.profile-photo--sm {
+    font-size: 1rem;
+}
+
+.add-friend-form {
+    display: flex;
+    gap: 8px;
+}
+
+.add-friend-form .text-input {
+    flex: 1;
+    min-width: 0;
+}
+
+.friend-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.card-title + .friend-row {
+    border-top: none;
+}
+
+.friend-row__who {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.friend-row__name {
+    flex: 1;
+    min-width: 0;
+    color: var(--text-primary);
+    font-weight: 700;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Online status, kept current by social/me.js */
+.friend-status {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.friend-status::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.friend-status[data-status="offline"]::after { content: 'Offline'; }
+.friend-status[data-status="online"]::after { content: 'Online'; }
+.friend-status[data-status="in_game"]::after { content: 'In a game'; }
+
+.friend-status[data-status="online"] { color: var(--accent-green); }
+.friend-status[data-status="online"]::before { background: var(--accent-green); box-shadow: 0 0 6px var(--accent-green); }
+.friend-status[data-status="in_game"] { color: var(--accent-yellow); }
+.friend-status[data-status="in_game"]::before { background: var(--accent-yellow); }
+
+.btn-small {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-small:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.btn-small--yes {
+    background: rgba(52, 211, 153, 0.2);
+    border-color: rgba(52, 211, 153, 0.4);
+    color: var(--accent-green);
+}
+
+.row-menu {
+    position: relative;
+}
+
+.row-menu summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 8px;
+    color: var(--text-muted);
+}
+
+.row-menu summary::-webkit-details-marker {
+    display: none;
+}
+
+.row-menu__items {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    z-index: 10;
+    min-width: 150px;
+    padding: 6px;
+    background: #1E1E2D;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.row-menu__items button {
+    width: 100%;
+    text-align: left;
+    padding: 8px 10px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.row-menu__items button:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.friend-buttons {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+}
+
+.friend-state {
+    color: var(--text-secondary);
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.friend-state--yes {
+    color: var(--accent-green);
+}
+
+.request-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    background: var(--accent-red);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 800;
+    line-height: 18px;
+    text-align: center;
+}
+
+/* Notices from social/me.js, at the top so they never cover the game's own toasts */
+.me-toasts {
+    position: fixed;
+    top: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: calc(100% - 32px);
+    max-width: 420px;
+}
+
+.me-toast {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: rgba(20, 20, 32, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 0.9rem;
+    animation: slideUp 0.25s ease-out;
+}
+
+.me-toast span {
+    flex: 1;
+}
+
+.me-toast__action {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 0.8rem;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.me-toast__action--primary {
+    background: var(--accent-green);
+    border-color: var(--accent-green);
+    color: #0f0e17;
+}
+
+.add-friend-form .btn {
+    flex: 0 0 auto;
+    width: auto;
+    padding-left: 22px;
+    padding-right: 22px;
+}

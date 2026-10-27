@@ -1,0 +1,122 @@
+{% extends "game/base.html" %}
+
+{% block title %}Friends | Word Hunt{% endblock %}
+
+{% block content %}
+<div class="landing-bg">
+    <div class="page-container">
+        <a href="{% url 'landing' %}" class="btn-back"><i class="ph-bold ph-caret-left"></i> Home</a>
+
+        {% include "social/messages.html" %}
+
+        {% if guest %}
+        <div class="card glass-card">
+            <h1 class="card-title"><i class="ph-duotone ph-users-three"></i> Friends</h1>
+            <p class="form-note">Friends are for players with a name. Sign out of the demo, then sign up with a name and PIN, or with Google.</p>
+            <a href="{% url 'logout' %}" class="btn btn-primary profile-signout"><span class="btn-text">Sign out of the demo</span></a>
+        </div>
+        {% else %}
+
+        <div class="card glass-card">
+            <h1 class="card-title"><i class="ph-duotone ph-user-plus"></i> Add a friend</h1>
+            <form method="post" action="{% url 'add_friend' %}" class="add-friend-form">
+                {% csrf_token %}
+                <input type="text" name="name" class="text-input" placeholder="Their game name" maxlength="10" autocomplete="off" required aria-label="Their game name">
+                <button type="submit" class="btn btn-accent"><span class="btn-text">Add</span></button>
+            </form>
+        </div>
+
+        {% if received %}
+        <div class="card glass-card">
+            <h2 class="card-title"><i class="ph-duotone ph-envelope-simple"></i> Asking to be your friend</h2>
+            {% for friend_request in received %}
+            <div class="friend-row">
+                {% include "social/avatar.html" with person=friend_request.from_user %}
+                <a class="friend-row__name" href="{% url 'profile' friend_request.from_user.username %}">{{ friend_request.from_user.username }}</a>
+                <form method="post" action="{% url 'friend_action' 'accept' friend_request.from_user.username %}">
+                    {% csrf_token %}<button type="submit" class="btn-small btn-small--yes">Accept</button>
+                </form>
+                <form method="post" action="{% url 'friend_action' 'decline' friend_request.from_user.username %}">
+                    {% csrf_token %}<button type="submit" class="btn-small">Decline</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <div class="card glass-card">
+            <h2 class="card-title"><i class="ph-duotone ph-users-three"></i> Friends <span class="player-count">({{ friends|length }})</span></h2>
+            {% for friend in friends %}
+            <div class="friend-row">
+                {% include "social/avatar.html" with person=friend.user %}
+                <div class="friend-row__who">
+                    <a class="friend-row__name" href="{% url 'profile' friend.user.username %}">{{ friend.user.username }}</a>
+                    <span class="friend-status" data-friend="{{ friend.user.username }}" data-status="{{ friend.status }}"></span>
+                </div>
+                <details class="row-menu">
+                    <summary aria-label="More for {{ friend.user.username }}"><i class="ph-bold ph-dots-three"></i></summary>
+                    <div class="row-menu__items">
+                        <form method="post" action="{% url 'friend_action' 'remove' friend.user.username %}">
+                            {% csrf_token %}<button type="submit">Remove friend</button>
+                        </form>
+                        <form method="post" action="{% url 'friend_action' 'block' friend.user.username %}">
+                            {% csrf_token %}<button type="submit">Block</button>
+                        </form>
+                    </div>
+                </details>
+            </div>
+            {% empty %}
+            <p class="empty-note">No friends yet. Add someone by their game name, or from their profile: tap a name in your recent games.</p>
+            {% endfor %}
+        </div>
+
+        {% if sent %}
+        <div class="card glass-card">
+            <h2 class="card-title"><i class="ph-duotone ph-paper-plane-tilt"></i> Waiting for an answer</h2>
+            {% for friend_request in sent %}
+            <div class="friend-row">
+                {% include "social/avatar.html" with person=friend_request.to_user %}
+                <a class="friend-row__name" href="{% url 'profile' friend_request.to_user.username %}">{{ friend_request.to_user.username }}</a>
+                <form method="post" action="{% url 'friend_action' 'cancel' friend_request.to_user.username %}">
+                    {% csrf_token %}<button type="submit" class="btn-small">Cancel</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if blocked %}
+        <div class="card glass-card">
+            <h2 class="card-title"><i class="ph-duotone ph-prohibit"></i> Blocked</h2>
+            {% for block in blocked %}
+            <div class="friend-row">
+                {% include "social/avatar.html" with person=block.blocked %}
+                <span class="friend-row__name">{{ block.blocked.username }}</span>
+                <form method="post" action="{% url 'friend_action' 'unblock' block.blocked.username %}">
+                    {% csrf_token %}<button type="submit" class="btn-small">Unblock</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% endif %}
+    </div>
+</div>
+
+{% if not guest %}
+<script>
+    // While this page is open, someone may accept, send or answer a request: when the lists
+    // social/me.js hears about differ from the ones shown, show the new ones.
+    document.addEventListener('DOMContentLoaded', () => {
+        const requestsShown = {{ received|length }};
+        const friendsShown = [...document.querySelectorAll('.friend-row .friend-status')].map(el => el.dataset.friend).sort().join();
+        WordHuntMe.on('friends', (message) => {
+            const friendsNow = message.friends.map(f => f.name).sort().join();
+            if (friendsNow !== friendsShown || message.requests !== requestsShown) location.reload();
+        });
+        WordHuntMe.on('friend_request', () => location.reload());
+    });
+</script>
+{% endif %}
+{% endblock %}

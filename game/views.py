@@ -15,6 +15,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from accounts import names
+from social.models import FriendRequest
 from .game_manager import ROOMS, GameRoom, generate_room_code
 from .stats import global_rank
 
@@ -59,6 +60,7 @@ def landing(request):
         context['fifth_places'] = profile.fifth_places
         context['avatar_url'] = profile.avatar_url
         context['global_rank'] = global_rank(request.user)
+        context['friend_requests'] = FriendRequest.objects.filter(to_user=request.user).count()
 
         return render(request, 'game/landing_auth.html', context)
     else:

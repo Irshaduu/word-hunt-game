@@ -9,7 +9,7 @@ Written October 2026. Each phase ships on its own, so the game is finished at th
 | 0. Steadier today | The current game holds up on real phones and networks | Done |
 | 1. Foundation | Nothing visible: the base the social features stand on | Done |
 | 2. Google sign-in | Sign in with Google, real profiles, match history | Done; needs a Google client ID |
-| 3. Friends | Friend requests, friends list, who's online | |
+| 3. Friends | Friend requests, friends list, who's online | Done |
 | 4. Play together | Invite a friend; random matches, with Robo as the fallback | |
 | 5. Voice in games | Talk to up to 3 others during a game | |
 | 6. Voice rooms | Rooms where up to 8 people talk | |
@@ -97,12 +97,16 @@ Done when: a new person signs in with Google in two taps, and an existing PIN pl
 
 ## Phase 3 — Friends
 
-- `FriendRequest(from_user, to_user, created, status)`, unique per pair. Two requests that cross become a friendship. `Friendship` is one row per pair, lower id first. `Block` hides two people from each other everywhere.
-- Find people by friend code, since names aren't unique.
-- **Online status** is an in-memory count of each user's open `/ws/me/` sockets, with about 10 seconds of grace so a page load doesn't flicker you offline. Friends get "online", "in a game" or "offline" pushed over their own socket. None of it is written to Postgres (rule 2).
-- Friend requests are limited per user per day.
+Done:
 
-Done when: two accounts friend each other and see each other come online without refreshing.
+- [x] **Friend requests**, one per pair, answered with accept or decline; the sender can cancel. Two requests that cross become a friendship at once. `Friendship` is one row per pair, lower id first, and the database enforces both rules.
+- [x] **Find people by name** (names are unique), on the friends page or from anyone's profile: tap a name in your recent games.
+- [x] **Block** ends a friendship and any requests, stops new ones both ways, and hides your profile from them. Which of you blocked the other is never shown.
+- [x] **Online status** comes from an in-memory count of each player's open `/ws/me/` sockets (`social/presence.py`), with 10 seconds of grace so moving between pages never flickers you offline. Friends see "Online", "In a game" (a game page is open) or "Offline", pushed over their own socket. None of it touches Postgres (rule 2). Postgres is read only when a socket opens or friends change.
+- [x] **Every page knows**: a friend request shows as a notice on whatever page is open, with a count on the home page's Friends button. An open friends page refreshes itself when its lists change.
+- [x] Each player can send 20 friend requests a day. Demo guests can't use friends.
+
+Done when: two accounts friend each other and see each other come online without refreshing. Checked in the browser with two players in two tabs: request, notice, accept, both online, then offline 10 seconds after one left.
 
 ## Phase 4 — Play together
 
