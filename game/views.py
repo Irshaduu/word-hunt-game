@@ -7,7 +7,7 @@ import secrets
 from datetime import timedelta
 
 from django.shortcuts import render, redirect
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.core.cache import cache
 from django.core.paginator import Paginator
 from django.contrib.auth import authenticate, login, logout
@@ -303,3 +303,11 @@ def spectate_view(request, room_code):
         'username': username,
         'is_spectator': True,
     })
+
+
+def healthz(request):
+    """For the uptime pinger: two bytes back, no session and no database.
+
+    It runs around the clock, so a query here would keep the database awake all month.
+    """
+    return HttpResponse('ok', content_type='text/plain')

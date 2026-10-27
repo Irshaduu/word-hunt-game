@@ -158,3 +158,4 @@ Client (Browser)                    Server (Render)
    | `DB_HOST` | Your Neon host (e.g. `ep-xxx.aws.neon.tech`) |
    | `DB_PORT` | `5432` |
 5. Deploy! Render provides free HTTPS which enables WebSocket (`wss://`), Screen Wake Lock, and PWA installation.
+6. *(Optional)* To stop the free instance from sleeping, point an uptime pinger at `https://<your-app>.onrender.com/healthz`. It answers `ok` without touching the database, so Neon can still scale to zero, and each ping costs a few bytes of Render's monthly bandwidth instead of a whole page.

@@ -8,6 +8,7 @@ Tests for HTTP views:
 - Join room (valid, invalid code, full room, in-progress)
 - Leaderboard API (structure, pagination)
 - Live games API (structure)
+- Health check (tiny, no database)
 """
 
 from django.test import TestCase, Client
@@ -218,3 +219,12 @@ class LiveGamesAPITests(TestCase):
         response = self.client.get(reverse('api_live_games'))
         codes = [g['room_code'] for g in response.json()['games']]
         self.assertIn('ACT', codes)
+
+
+class HealthzTests(TestCase):
+    def test_healthz_answers_ok_without_touching_the_database(self):
+        # The uptime pinger is set up with this exact path.
+        with self.assertNumQueries(0):
+            response = self.client.get('/healthz')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.content, b'ok')

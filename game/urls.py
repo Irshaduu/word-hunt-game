@@ -17,4 +17,5 @@ urlpatterns = [
     path('api/live-games/', views.api_live_games, name='api_live_games'),
     path('spectate/<str:room_code>/', views.spectate_view, name='spectate_view'),
     path('sw.js', TemplateView.as_view(template_name='game/sw.js', content_type='application/javascript'), name='sw.js'),
+    path('healthz', views.healthz, name='healthz'),
 ]
