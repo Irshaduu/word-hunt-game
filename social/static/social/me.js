@@ -84,6 +84,16 @@
         toast(`${message.from} wants to be friends`, [{ label: 'See', href: '/friends/' }]);
     });
 
+    // --- Game invites (social/views.py invite): Join, or say not now ---
+
+    on('invite', (message) => {
+        toast(`${message.from} invites you to play`, [
+            { label: 'Join', href: `/join/${encodeURIComponent(message.room)}/`, primary: true },
+            { label: 'Not now', onClick: () => send({ type: 'decline_invite', from: message.from }) },
+        ], 60);
+    });
+    on('invite_declined', (message) => toast(`${message.by} can't play right now`));
+
     // --- Notices at the top of the page ---
 
     let stack = null;

@@ -15,6 +15,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from accounts import names
+from social import presence, rules
 from social.models import FriendRequest
 from .game_manager import ROOMS, GameRoom, generate_room_code
 from .stats import global_rank
@@ -232,11 +233,25 @@ def lobby(request, room_code):
 
     room = ROOMS[room_code]
 
+    # Friends to invite, with their status kept current by social/me.js. Not for a random
+    # match (it starts by itself), nor for demo guests (no friends).
+    friends = []
+    if not room.matchmade and not request.user.profile.is_guest:
+        friends = [{'name': f.username, 'status': presence.status(f.id)} for f in rules.friends_of(request.user)]
+
     return render(request, 'game/lobby.html', {
         'room_code': room_code,
         'username': username,
         'is_creator': username == room.creator,
+        'auto_start': bool(room.expected),
+        'friends': friends,
     })
+
+
+@login_required(login_url='/')
+def random_match(request):
+    """The page that waits in the random-match queue (game/matchmaking.py)."""
+    return render(request, 'game/random.html')
 
 
 @login_required(login_url='/')

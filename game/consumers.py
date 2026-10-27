@@ -21,6 +21,7 @@ from .game_manager import (
     bot_pick_delay, bot_find_delay,
 )
 from social import presence
+from .matchmaking import start_match
 from .models import Match, MatchPlayer, PlayerProfile
 from .tasks import spawn
 
@@ -155,6 +156,11 @@ class LobbyConsumer(AsyncWebsocketConsumer):
 
         await self.broadcast_players(room)
 
+        # A random match starts by itself once everyone it was made for is here.
+        here = {u for u, p in room.players.items() if p.is_connected}
+        if room.expected and room.state == LOBBY and room.expected <= here:
+            await start_match(room)
+
     async def disconnect(self, close_code):
         if not getattr(self, 'seated', False):
             return  # turned away: never joined the room
@@ -259,6 +265,10 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             'type': 'game_starting',
             'turn_order': event['turn_order'],
         }))
+
+    async def match_cancelled(self, event):
+        """A random match the others never arrived at (game/matchmaking.py)."""
+        await self.send(text_data=json.dumps({'type': 'match_cancelled'}))
 
 
 class GameConsumer(AsyncWebsocketConsumer):

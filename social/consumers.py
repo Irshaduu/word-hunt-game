@@ -1,12 +1,14 @@
 """The app-wide socket, /ws/me/: one per open page of a signed-in player.
 
-It carries friends' online status and friend requests, and invites and random matches too
-(Phase 4). What it knows about who is online lives in presence.py.
+It carries friends' online status, friend requests and game invites, and it is how a page
+waits in the random-match queue (game/matchmaking.py). What it knows about who is online
+lives in presence.py.
 """
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 
+from game import matchmaking
 from game.consumers import turn_away
 from . import presence
 from .models import FriendRequest
@@ -26,6 +28,7 @@ class MeConsumer(AsyncJsonWebsocketConsumer):
             await turn_away(self)
             return
         self.user = user
+        self.invited_by = {}  # name -> user id of everyone whose invite reached this page
         await self.channel_layer.group_add(presence.group(user.id), self.channel_name)
         await self.accept()
         await self.send_friends()
@@ -34,8 +37,24 @@ class MeConsumer(AsyncJsonWebsocketConsumer):
     async def disconnect(self, code):
         if not hasattr(self, 'user'):
             return  # turned away
+        matchmaking.leave(self.user.id, self.channel_name)  # a waiting page that closes stops waiting
         await self.channel_layer.group_discard(presence.group(self.user.id), self.channel_name)
         await presence.disconnected(self.user.id)
+
+    async def receive_json(self, content):
+        kind = content.get('type')
+        if kind == 'queue_join':
+            await self.send_json({'type': 'queue_joined'})
+            await matchmaking.join(self.user.id, self.user.username, self.channel_name)
+        elif kind == 'queue_leave':
+            matchmaking.leave(self.user.id, self.channel_name)
+        elif kind == 'decline_invite':
+            # Only to someone whose invite reached this page, so nobody can be sent these at random.
+            inviter_id = self.invited_by.pop(content.get('from'), None)
+            if inviter_id is not None:
+                await self.channel_layer.group_send(presence.group(inviter_id), {
+                    'type': 'invite_declined', 'by': self.user.username,
+                })
 
     async def send_friends(self):
         """Their friends and how each is doing, and how many friend requests wait for them."""
@@ -47,7 +66,7 @@ class MeConsumer(AsyncJsonWebsocketConsumer):
             'requests': requests,
         })
 
-    # Messages for this player, from presence.py and social/notify.py
+    # Messages for this player, from presence.py, social/notify.py and game/matchmaking.py
 
     async def friend_status(self, event):
         await self.send_json({'type': 'friend_status', 'name': event['name'], 'status': event['status']})
@@ -57,3 +76,13 @@ class MeConsumer(AsyncJsonWebsocketConsumer):
 
     async def friends_changed(self, event):
         await self.send_friends()
+
+    async def invite(self, event):
+        self.invited_by[event['from']] = event['from_id']
+        await self.send_json({'type': 'invite', 'from': event['from'], 'room': event['room']})
+
+    async def invite_declined(self, event):
+        await self.send_json({'type': 'invite_declined', 'by': event['by']})
+
+    async def match_found(self, event):
+        await self.send_json({'type': 'match_found', 'room': event['room']})

@@ -1,0 +1,53 @@
+{% extends "game/base.html" %}
+
+{% block title %}Random match | Word Hunt{% endblock %}
+
+{% block content %}
+<div class="landing-bg">
+    <div class="page-container">
+        <a href="{% url 'landing' %}" class="btn-back"><i class="ph-bold ph-caret-left"></i> Cancel</a>
+
+        <div class="card glass-card waiting-card">
+            <div class="waiting-dots"><span></span><span></span><span></span></div>
+            <h1 class="card-title waiting-title">Finding players…</h1>
+            <p class="form-note">You'll play with up to 3 people who are looking too. <span id="waiting-seconds">0</span>s</p>
+
+            <div id="robo-offer" hidden>
+                <p class="form-note">Not many people around right now.</p>
+                <a href="{% url 'practice_room' %}" class="btn btn-secondary practice-btn">
+                    <span class="robo-face" aria-hidden="true"><i></i></span>
+                    <span class="practice-btn__words">
+                        <span class="practice-btn__title">Play Robo instead</span>
+                        <span class="practice-btn__sub">A real game, you and Robo</span>
+                    </span>
+                    <i class="ph-bold ph-caret-right practice-btn__go" aria-hidden="true"></i>
+                </a>
+            </div>
+        </div>
+
+        <p class="footer-note">Random matches have no voice chat. Play with friends to talk.</p>
+    </div>
+</div>
+
+<script>
+    // social/me.js holds the page's place in the queue (game/matchmaking.py) for as long as the
+    // page is open; leaving the page gives the place up.
+    document.addEventListener('DOMContentLoaded', () => {
+        const join = () => WordHuntMe.send({ type: 'queue_join' });
+        WordHuntMe.on('open', join);  // the socket opening, or opening again after a drop
+        join();
+        WordHuntMe.on('match_found', (message) => {
+            window.location.href = `/lobby/${message.room}/`;
+        });
+
+        const started = Date.now();
+        const seconds = document.getElementById('waiting-seconds');
+        const roboOffer = document.getElementById('robo-offer');
+        setInterval(() => {
+            const waited = Math.floor((Date.now() - started) / 1000);
+            seconds.textContent = waited;
+            if (waited >= 20) roboOffer.hidden = false;
+        }, 1000);
+    });
+</script>
+{% endblock %}

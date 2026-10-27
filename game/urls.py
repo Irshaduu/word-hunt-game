@@ -10,6 +10,7 @@ urlpatterns = [
     path('demo/', views.demo_view, name='demo'),
     path('create/', views.create_room, name='create_room'),
     path('practice/', views.practice_room, name='practice_room'),
+    path('play/random/', views.random_match, name='random_match'),
     path('join/<str:room_code>/', views.join_room, name='join_room'),
     path('lobby/<str:room_code>/', views.lobby, name='lobby'),
     path('game/<str:room_code>/', views.game_view, name='game_view'),

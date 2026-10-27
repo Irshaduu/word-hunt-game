@@ -92,10 +92,12 @@ GAME_OVER = 'game_over'
 class GameRoom:
     """In-memory game state for a single room."""
 
-    def __init__(self, room_code, creator, practice=False):
+    def __init__(self, room_code, creator, practice=False, matchmade=False):
         self.room_code = room_code
         self.creator = creator
         self.practice = practice     # Robo plays too, and nothing reaches the leaderboard
+        self.matchmade = matchmade   # a random match: strangers, so no voice (game/matchmaking.py)
+        self.expected = set()        # a new random match's players: it starts once they're all here
         self.players = {}            # {username: PlayerState}
         self.spectators = set()      # {username}
         self.player_order = []       # Join order (for lobby display)
@@ -459,5 +461,6 @@ class GameRoom:
             self.current_turn_index = 0
             self.pick_start_time = None
             self.show_start_time = None
+            self.expected = set()  # Play Again: whoever comes back, and the host starts it
             if self.practice:
                 self._seat_bot()

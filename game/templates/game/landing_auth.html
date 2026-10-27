@@ -179,6 +179,12 @@
                 </div>
             </form>
 
+            <!-- Strangers who are looking too, matched by the server (game/matchmaking.py). -->
+            <a href="{% url 'random_match' %}" class="btn btn-secondary random-btn" id="btn-random">
+                <span class="btn-icon"><i class="ph-duotone ph-shuffle" style="color: #C084FC; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i></span>
+                <span class="btn-text">Random match</span>
+            </a>
+
             <!-- No one around? Robo plays a real game with you; nothing reaches the leaderboard. -->
             <a href="{% url 'practice_room' %}" class="btn btn-secondary practice-btn" id="btn-practice">
                 <span class="robo-face" aria-hidden="true"><i></i></span>

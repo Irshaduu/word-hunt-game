@@ -1910,3 +1910,45 @@ html, body {
     padding-left: 22px;
     padding-right: 22px;
 }
+
+/* --- Play together --- */
+/* Invite and Play buttons show only while the friend is online (data-status from social/me.js) */
+.invite-btn[data-status="offline"],
+.invite-btn[data-status="in_game"],
+.invite-form[data-status="offline"],
+.invite-form[data-status="in_game"] {
+    display: none;
+}
+
+.invite-card {
+    margin-top: 24px;
+}
+
+.invite-result:empty {
+    display: none;
+}
+
+.invite-result {
+    margin: 12px 0 0;
+}
+
+.random-btn {
+    width: 100%;
+    justify-content: center;
+    text-decoration: none;
+    margin-top: 12px;
+}
+
+.waiting-card {
+    text-align: center;
+}
+
+.waiting-card .waiting-title {
+    justify-content: center;
+    margin-top: 16px;
+}
+
+.waiting-card .practice-btn {
+    margin-top: 4px;
+    text-decoration: none;
+}

@@ -10,7 +10,7 @@ Written October 2026. Each phase ships on its own, so the game is finished at th
 | 1. Foundation | Nothing visible: the base the social features stand on | Done |
 | 2. Google sign-in | Sign in with Google, real profiles, match history | Done; needs a Google client ID |
 | 3. Friends | Friend requests, friends list, who's online | Done |
-| 4. Play together | Invite a friend; random matches, with Robo as the fallback | |
+| 4. Play together | Invite a friend; random matches, with Robo as the fallback | Done |
 | 5. Voice in games | Talk to up to 3 others during a game | |
 | 6. Voice rooms | Rooms where up to 8 people talk | |
 
@@ -110,11 +110,14 @@ Done when: two accounts friend each other and see each other come online without
 
 ## Phase 4 — Play together
 
-- **Invites.** Tap "Play" on a friend. They get a toast on any page they have open. Accept, and both of you land in a new room. Invites live in memory, expire after 60 seconds, and are limited per user.
-- **Random matches.** An in-memory queue that makes groups of 2–4. With few people online the queue is often empty, so after about 20 seconds it offers Robo.
-- Later: credit far-away players with half their measured round trip when they find a word, since one Render region serves everyone.
+Done:
 
-Done when: a friend is in your room two taps after you open the friends list, and a random match (or a Robo game) starts within 30 seconds.
+- [x] **Invites.** Tap **Play** next to a friend who is online, on the friends page. You go to a new room's lobby, and they get a notice on whatever page they have open, with **Join** and **Not now**. From a lobby, its **Invite friends** list invites them to that room. "Not now" tells you, and only someone whose invite arrived can send it. An invite is just a notice with a room code, so nothing is stored. The notice goes away after 60 seconds, and each player can send 10 invites in 10 minutes. Friends who are offline or in a game can't be invited.
+- [x] **Random matches** (`game/matchmaking.py`). An in-memory queue: once two players are waiting, it waits 4 more seconds for others, then makes matches of up to 4, oldest first. Two people who blocked each other are never put together; that is the one Postgres read, once per match. The match's lobby starts by itself once everyone has arrived. After 20 seconds it starts with whoever came, or, if only one did, sends them back to the queue. The waiting page offers Robo after 20 seconds. Random matches have no voice.
+
+Later: give far-away players back half their measured round trip when they find a word, since one Render region serves everyone.
+
+Done when: a friend is in your room two taps after you open the friends list, and a random match (or a Robo game) starts within 30 seconds. Checked in the browser with two players: Play, notice, Join, both in one lobby; then both on the random page, matched within 7 seconds, and the game started by itself.
 
 ## Phase 5 — Voice in games
 

@@ -130,6 +130,14 @@
                 playEpicStartSound();
                 setTimeout(navigateToGame, 2500);
                 break;
+            case 'match_cancelled': {
+                // A random match the others never arrived at: back into the queue.
+                const note = document.querySelector('.waiting-message p');
+                if (note) note.textContent = "The others didn't arrive. Finding new players…";
+                intentionalDisconnect = true;
+                setTimeout(() => { window.location.href = '/play/random/'; }, 2000);
+                break;
+            }
             case 'error':
                 showError(data.message);
                 break;
@@ -216,11 +224,17 @@
             listEl.appendChild(item);
         });
 
+        // Friends already in the room drop out of the invite list.
+        const inRoom = players.map(p => p.username);
+        document.querySelectorAll('[data-invite]').forEach(button => {
+            button.closest('.friend-row').hidden = inRoom.includes(button.dataset.invite);
+        });
+
         // Update host UI dynamically
         const startWrapper = document.getElementById('start-action-wrapper');
         const waitingMsg = document.getElementById('waiting-message');
         
-        if (isHostNow) {
+        if (isHostNow && !AUTO_START) {
             if (startWrapper) startWrapper.style.display = 'flex';
             if (waitingMsg) waitingMsg.style.display = 'none';
             
@@ -322,6 +336,25 @@
     window.addEventListener('pagehide', () => {
         intentionalDisconnect = true;
         if (ws) ws.close();
+    });
+
+    // Invite friends: the server sends each a notice with this room's code (social/views.py).
+    document.querySelectorAll('[data-invite]').forEach(button => {
+        button.addEventListener('click', async () => {
+            const result = document.getElementById('invite-result');
+            button.disabled = true;
+            try {
+                const response = await fetch(`/play/invite/${encodeURIComponent(button.dataset.invite)}/`, {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': CSRF_TOKEN },
+                    body: new URLSearchParams({ room: ROOM_CODE }),
+                });
+                result.textContent = (await response.json()).message;
+            } catch (e) {
+                result.textContent = "That invite didn't go through. Try again.";
+            }
+            setTimeout(() => { button.disabled = false; }, 3000);
+        });
     });
 
     // --- Initialize ---

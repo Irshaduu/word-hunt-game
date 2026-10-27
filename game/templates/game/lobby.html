@@ -35,7 +35,7 @@
         </div>
 
         <!-- Start action wrapper (hidden for non-hosts initially) -->
-        <div class="start-action-wrapper" id="start-action-wrapper" style="width: 100%; max-width: 400px; display: {% if is_creator %}flex{% else %}none{% endif %}; flex-direction: column; align-items: center;">
+        <div class="start-action-wrapper" id="start-action-wrapper" style="width: 100%; max-width: 400px; display: {% if is_creator and not auto_start %}flex{% else %}none{% endif %}; flex-direction: column; align-items: center;">
             <button class="btn btn-primary btn-start" id="btn-start" disabled>
                 <i class="ph-duotone ph-rocket-launch" style="font-size: 1.4rem; margin-right: 8px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3)); color: white;"></i>
                 Start Game
@@ -44,12 +44,29 @@
         </div>
 
         <!-- Waiting message (hidden for hosts initially) -->
-        <div class="waiting-message" id="waiting-message" style="display: {% if is_creator %}none{% else %}block{% endif %};">
+        <div class="waiting-message" id="waiting-message" style="display: {% if is_creator and not auto_start %}none{% else %}block{% endif %};">
             <div class="waiting-dots">
                 <span></span><span></span><span></span>
             </div>
-            <p>Waiting for the host to start the game...</p>
+            <p>{% if auto_start %}A random match: it starts by itself once everyone is here.{% else %}Waiting for the host to start the game...{% endif %}</p>
         </div>
+
+        {% if friends %}
+        <!-- Friends who are online get an Invite button; their status is kept current by social/me.js -->
+        <div class="card glass-card invite-card">
+            <h2 class="card-title"><i class="ph-duotone ph-paper-plane-tilt"></i> Invite friends</h2>
+            {% for friend in friends %}
+            <div class="friend-row">
+                <div class="friend-row__who">
+                    <span class="friend-row__name">{{ friend.name }}</span>
+                    <span class="friend-status" data-friend="{{ friend.name }}" data-status="{{ friend.status }}"></span>
+                </div>
+                <button type="button" class="btn-small invite-btn" data-invite="{{ friend.name }}" data-friend="{{ friend.name }}" data-status="{{ friend.status }}">Invite</button>
+            </div>
+            {% endfor %}
+            <p class="form-note invite-result" id="invite-result" role="status"></p>
+        </div>
+        {% endif %}
     </div>
 </div>
 
@@ -57,6 +74,8 @@
     const ROOM_CODE = '{{ room_code }}';
     const USERNAME = '{{ username }}';
     const IS_CREATOR = {{ is_creator|yesno:"true,false" }};
+    const AUTO_START = {{ auto_start|yesno:"true,false" }};  // a random match: nobody presses Start
+    const CSRF_TOKEN = '{{ csrf_token }}';
 </script>
-<script src="{% static 'game/js/lobby.js' %}?v=7"></script>
+<script src="{% static 'game/js/lobby.js' %}?v=9"></script>
 {% endblock %}

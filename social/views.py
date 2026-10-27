@@ -3,14 +3,18 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
-from django.http import Http404
+from django.core.cache import cache
+from django.http import Http404, JsonResponse
 from django.shortcuts import redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from accounts import names
+from game.game_manager import LOBBY, ROOMS, GameRoom, generate_room_code
 from . import notify, presence, rules
 from .models import Block, FriendRequest
+
+INVITES_PER_10_MIN = 10  # per player
 
 
 def _back(request):
@@ -87,3 +91,48 @@ def friend_action(request, action, username):
         messages.success(request, text.format(name=other.username))
         notify.friends_changed(request.user, other)
     return _back(request)
+
+
+@login_required(login_url='/')
+@require_POST
+def invite(request, username):
+    """Ask a friend who is online to play: in the lobby the inviter is in, or in a new room.
+
+    From a lobby's invite list (with `room`), the answer is JSON for the list to show in place.
+    From the friends page, the inviter goes to the new room's lobby to wait there.
+    """
+    user = request.user
+    friend = User.objects.filter(username=username).first()
+    if friend is None or not rules.are_friends(user, friend):  # a block ends a friendship, so this covers blocks
+        raise Http404
+    code = request.POST.get('room', '').upper()
+
+    def answer(ok, message, room=None):
+        if code:
+            return JsonResponse({'ok': ok, 'message': message}, status=200 if ok else 400)
+        if ok:
+            return redirect('lobby', room_code=room.room_code)
+        messages.error(request, message)
+        return redirect('friends')
+
+    status = presence.status(friend.id)
+    if status == presence.IN_GAME:
+        return answer(False, f'{friend.username} is in a game right now.')
+    if status == presence.OFFLINE:
+        return answer(False, f"{friend.username} isn't online right now.")
+    key = f'invites:{user.id}'
+    sent = cache.get(key, 0)
+    if sent >= INVITES_PER_10_MIN:
+        return answer(False, "That's a lot of invites. Give it a few minutes.")
+
+    if code:
+        room = ROOMS.get(code)
+        if room is None or room.state != LOBBY or user.username not in room.players:
+            return answer(False, 'Invite friends from the lobby you are in.')
+    else:
+        room = GameRoom(generate_room_code(), creator=user.username)
+        ROOMS[room.room_code] = room
+
+    cache.set(key, sent + 1, 10 * 60)
+    notify.tell(friend, {'type': 'invite', 'from': user.username, 'from_id': user.id, 'room': room.room_code})
+    return answer(True, f'Invited {friend.username}.', room)

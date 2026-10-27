@@ -84,5 +84,12 @@ Friendships are rows people own, so they live in Postgres (`social/models.py`, r
 - **Pages tell each other.** A friend-request button is an ordinary POST. The view writes the row, then `social/notify.py` sends `friend_request` or `friends_changed` to the players' groups, and their open pages update.
 - **A restart forgets presence**, and that's fine: every page's socket reconnects within seconds and rebuilds it.
 
+## 9. Invites and Random Matches
+
+- **An invite is only a notice.** The invite view checks friendship and online status, makes a room (or uses the lobby the inviter is in), and sends `invite` with the room code to the friend's `/ws/me/` group. Joining goes through the ordinary `/join/<code>/`. Nothing about invites is stored. Declining is relayed only to someone whose invite actually reached that page, so nobody can be sent declines at random.
+- **The queue is a dict in memory** (`game/matchmaking.py`), oldest first. A page joins over `/ws/me/` and leaves when that page closes. Each entry remembers the socket that asked, so closing a second tab doesn't cancel the wait in the first.
+- **Matching:** at 4 waiting it matches at once; at 2 or 3 it waits 4 seconds for more. Groups skip pairs who blocked each other, which is read once per match.
+- **A random match's room knows who it's for** (`GameRoom.expected`). The lobby socket starts the game when the last of them arrives. A timer started with the room starts it with whoever came after 20 seconds, or closes it and sends a lone player back to the queue. Play Again turns it into an ordinary host-started room. `matchmade` stays set, so strangers never get voice chat (Phase 5).
+
 ---
 *By constraining the system to $0 and acknowledging the <200 user limit, these constraints led to custom state machines and a hybrid audio synthesis model, resulting in a lightweight and efficient MVP without introducing unnecessary infrastructure complexity.*

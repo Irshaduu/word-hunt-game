@@ -53,6 +53,10 @@
                     <a class="friend-row__name" href="{% url 'profile' friend.user.username %}">{{ friend.user.username }}</a>
                     <span class="friend-status" data-friend="{{ friend.user.username }}" data-status="{{ friend.status }}"></span>
                 </div>
+                <!-- Shown while they're online (CSS on data-status, kept current by social/me.js) -->
+                <form method="post" action="{% url 'invite' friend.user.username %}" class="invite-form" data-friend="{{ friend.user.username }}" data-status="{{ friend.status }}">
+                    {% csrf_token %}<button type="submit" class="btn-small btn-small--yes">Play</button>
+                </form>
                 <details class="row-menu">
                     <summary aria-label="More for {{ friend.user.username }}"><i class="ph-bold ph-dots-three"></i></summary>
                     <div class="row-menu__items">
