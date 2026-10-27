@@ -50,8 +50,9 @@ def generate_room_code():
 
 
 class PlayerState:
-    def __init__(self, username):
+    def __init__(self, username, avatar=''):
         self.username = username
+        self.avatar = avatar         # Google picture URL, or '' for the animal avatar
         self.time_bank = 100.0       # seconds
         self.words_found = 0         # total words successfully found
         self.is_eliminated = False
@@ -70,6 +71,7 @@ class PlayerState:
 
         return {
             'username': self.username,
+            'avatar': self.avatar,
             'time_bank': round(effective_time, 1),
             'words_found': self.words_found,
             'is_eliminated': self.is_eliminated,
@@ -105,6 +107,7 @@ class GameRoom:
         self.state = LOBBY
         self.show_start_time = None  # When the 3-sec popup started
         self.pick_start_time = None  # When picking phase started
+        self.started_at = None       # When the game started, for its Match record
         self.last_activity = time.time()
         self.game_over_announced = False
         if practice:
@@ -128,7 +131,7 @@ class GameRoom:
     def update_activity(self):
         self.last_activity = time.time()
 
-    def add_player(self, username):
+    def add_player(self, username, avatar=''):
         """Add a player to the room. Returns (success, error_msg)."""
         self.update_activity()
         if self.state == GAME_OVER:
@@ -143,11 +146,12 @@ class GameRoom:
             player = self.players[username]
             player.is_connected = True
             player.away_since = None
+            player.avatar = avatar or player.avatar
             return True, None
         if self.state != LOBBY:
             return False, "Game already in progress"
 
-        self.players[username] = PlayerState(username)
+        self.players[username] = PlayerState(username, avatar)
         self.player_order.append(username)
         return True, None
 
@@ -242,6 +246,7 @@ class GameRoom:
 
         # Generate the board
         self.board = get_random_board()
+        self.started_at = time.time()
 
         # Set first picker
         self.current_turn_index = 0

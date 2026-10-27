@@ -54,7 +54,7 @@ The system comfortably supports the intended usage pattern of friends, family, a
 - **Static Files:** WhiteNoise with `CompressedManifestStaticFilesStorage` for compression and cache-busting.
 - **Fonts:** Google Fonts (Fredoka, Baloo 2, Bubblegum Sans, Chewy, Boogaloo, Righteous, Nunito)
 - **Icons:** Phosphor Icons (duotone set)
-- **Dependencies:** 6 — `django`, `channels`, `daphne`, `whitenoise`, `psycopg2-binary`, `python-decouple`
+- **Dependencies:** 7 — `django`, `channels`, `daphne`, `whitenoise`, `psycopg2-binary`, `python-decouple`, `PyJWT[crypto]` (checks Google sign-in tokens)
 
 ## How to Play 🎮
 
@@ -134,7 +134,8 @@ Client (Browser)                    Server (Render)
 
 6. Run the test suite:
    ```bash
-   python manage.py test game.tests --verbosity=2
+   python manage.py collectstatic --noinput
+   python manage.py test
    ```
 
 7. Start the development server (uses Daphne for WebSockets):

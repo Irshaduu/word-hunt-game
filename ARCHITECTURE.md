@@ -61,5 +61,18 @@ The post-game soundboard allows all players in a room to trigger shared sound ef
 - **Playback:** The client clones the pre-loaded `Audio` node before playing, which allows overlapping sounds from different users to play simultaneously without conflict.
 - **Attribution:** A lightweight toast notification (visible for 1 second) displays the sender's username and the sound emoji, providing social context for who triggered the sound.
 
+## 7. Sign in with Google
+
+Google sign-in uses Google's own button (Google Identity Services) and checks its result on the server, without django-allauth:
+
+- **The page gets an ID token.** After the player picks an account, Google hands the page a JWT and the page posts it to `/auth/google/`. Nothing else from the browser is trusted.
+- **The server checks it** (`accounts/google.py`): RS256 signature against Google's published keys (PyJWT's `PyJWKClient`, cached for six hours, so most sign-ins make no request to Google), audience equal to our client ID, issuer Google, not expired. The account is identified by `sub`, which never changes.
+- **Names stay the key.** A returning account (`PlayerProfile.google_sub`) is signed in. A PIN player who is signed in links Google instead. Someone new chooses a game name under the same rules as a PIN sign-up (`accounts/names.py`), and gets an account with no usable password.
+- **What is stored:** `google_sub` and the account's picture URL, kept only if it's on `googleusercontent.com`, since pages load it as-is. No email.
+- **Two headers change.** `Cross-Origin-Opener-Policy: same-origin-allow-popups`, because Google's popup reports back to the page that opened it, which Django's default `same-origin` blocks. And `Referrer-Policy: strict-origin-when-cross-origin`, because Google's button checks which site it's on from the Referer, which Django's default `same-origin` leaves out. That is the browsers' own default: other sites get the origin only, never a path.
+- **Off until configured:** with no `GOOGLE_CLIENT_ID`, the button isn't rendered and nothing else changes.
+
+Finished games between people are kept as `Match` and `MatchPlayer` rows. They're written in the same transaction as the stats, once per game, so Neon only wakes when a game ends.
+
 ---
 *By constraining the system to $0 and acknowledging the <200 user limit, these constraints led to custom state machines and a hybrid audio synthesis model, resulting in a lightweight and efficient MVP without introducing unnecessary infrastructure complexity.*

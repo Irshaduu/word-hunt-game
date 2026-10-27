@@ -14,8 +14,8 @@
     <!-- Phosphor icons: only the two weights the pages use, at a fixed version -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/bold/style.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.2/src/duotone/style.css">
-    <link rel="preload" href="{% static 'game/css/style.css' %}?v=11" as="style">
-    <link rel="stylesheet" href="{% static 'game/css/style.css' %}?v=11">
+    <link rel="preload" href="{% static 'game/css/style.css' %}?v=12" as="style">
+    <link rel="stylesheet" href="{% static 'game/css/style.css' %}?v=12">
     {% block extra_css %}{% endblock %}
 </head>
 <body>
@@ -186,6 +186,11 @@
                 <span style="font-size: 0.9rem;">🔗</span>
                 <span>Share me</span>
             </button>
+            <div style="height: 1px; background: rgba(255, 255, 255, 0.1); margin: 2px 6px;"></div>
+            <a href="{% url 'privacy' %}" style="border-radius: 6px; padding: 6px 8px; display: flex; align-items: center; gap: 8px; color: #ffffff; font-family: var(--font-body, sans-serif); font-size: 0.8rem; font-weight: 600; text-decoration: none;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+                <span style="font-size: 0.9rem;">🔒</span>
+                <span>Privacy</span>
+            </a>
         </div>
     </div>
 

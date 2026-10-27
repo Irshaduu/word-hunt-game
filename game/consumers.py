@@ -9,16 +9,18 @@ import asyncio
 import logging
 import random
 import time as time_mod
+from datetime import datetime, timezone as dt_timezone
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.layers import get_channel_layer
+from django.contrib.auth.models import User
 from django.db import transaction
 from django.db.models import F
 from .game_manager import (
     ROOMS, GameRoom, LOBBY, PICKING, SHOWING, HUNTING, ROUND_END, GAME_OVER,
     bot_pick_delay, bot_find_delay,
 )
-from .models import PlayerProfile
+from .models import Match, MatchPlayer, PlayerProfile
 
 logger = logging.getLogger(__name__)
 
@@ -86,20 +88,41 @@ async def drop_if_still_away(room, username, away_since):
 
 
 @database_sync_to_async
-def save_results(leaderboard):
-    """Add a finished game to each player's stats.
+def save_results(room_code, started_at, leaderboard):
+    """Keep a finished game: add it to each player's stats, and record it as a Match.
 
-    One UPDATE per player that adds inside the database (F), so two saves can't overwrite each other.
+    The stats are added inside the database (F), one UPDATE per player, so two saves can't
+    overwrite each other. It is all one transaction.
     """
+    users = {u.username: u for u in User.objects.filter(username__in=[e['username'] for e in leaderboard])}
     with transaction.atomic():
+        match = Match.objects.create(
+            room_code=room_code,
+            started_at=datetime.fromtimestamp(started_at or time_mod.time(), tz=dt_timezone.utc),
+        )
+        results = []
         for place, entry in enumerate(leaderboard):
+            user = users.get(entry['username'])
+            if user is None:
+                continue  # deleted their account mid-game
             changes = {}
             if entry['time_bank'] > 0:
                 changes['total_earned_seconds'] = F('total_earned_seconds') + int(entry['time_bank'])
             if place < len(PLACE_FIELDS):
                 changes[PLACE_FIELDS[place]] = F(PLACE_FIELDS[place]) + 1
             if changes:
-                PlayerProfile.objects.filter(user__username=entry['username']).update(**changes)
+                PlayerProfile.objects.filter(user=user).update(**changes)
+            results.append(MatchPlayer(
+                match=match, user=user, place=place + 1,
+                words_found=entry['words_found'], seconds_left=int(entry['time_bank']),
+            ))
+        MatchPlayer.objects.bulk_create(results)
+
+
+@database_sync_to_async
+def avatar_of(user):
+    """The player's Google picture, if they signed in with Google."""
+    return PlayerProfile.objects.filter(user_id=user.id).values_list('avatar_url', flat=True).first() or ''
 
 
 def get_username_from_scope(scope):
@@ -120,13 +143,15 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         self.room_code = self.scope['url_route']['kwargs']['room_code'].upper()
         self.group_name = f'lobby_{self.room_code}'
         self.username = get_username_from_scope(self.scope)
+        # Looked up before the room, so nothing waits between finding the room and sitting down.
+        avatar = await avatar_of(self.scope['user']) if self.username else ''
 
         room = ROOMS.get(self.room_code)
         if self.username is None or room is None:
             await turn_away(self)
             return
 
-        success, error = room.add_player(self.username)
+        success, error = room.add_player(self.username, avatar=avatar)
         if not success:
             await turn_away(self)
             return
@@ -651,7 +676,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         # Practice games against Robo never touch the global leaderboard.
         if winner and winner in room.players and not room.practice:
             try:
-                await save_results(room.get_leaderboard())
+                await save_results(room.room_code, room.started_at, room.get_leaderboard())
             except Exception:
                 # The game still ends for everyone; the log says whose results were lost.
                 logger.exception('Could not save the results of room %s', room.room_code)

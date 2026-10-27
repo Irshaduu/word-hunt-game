@@ -18,6 +18,7 @@ from django.test import Client, TransactionTestCase
 
 from game.consumers import CLOSE_CANNOT_JOIN, drop_if_still_away
 from game.game_manager import ROOMS, GameRoom
+from game.models import PlayerProfile
 from wordhunt.asgi import application
 
 
@@ -135,6 +136,12 @@ class LobbySeatTests(TransactionTestCase):
         await bob.connect()
         self.assertEqual((await bob.receive_json_from())['type'], 'game_starting')
         await bob.disconnect()
+
+    async def test_a_google_picture_shows_in_the_lobby(self):
+        await PlayerProfile.objects.filter(user__username='Alice').aupdate(avatar_url='https://lh3.googleusercontent.com/a/alice')
+        alice = await self.join('Alice')
+        self.assertEqual(ROOMS['ABC'].players['Alice'].avatar, 'https://lh3.googleusercontent.com/a/alice')
+        await alice.disconnect()
 
     async def test_a_lobby_that_is_gone_turns_the_socket_away(self):
         ROOMS.clear()

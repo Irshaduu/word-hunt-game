@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'channels',
     'game',
+    'accounts',
 ]
 
 MIDDLEWARE = [
@@ -52,6 +53,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'accounts.context_processors.sign_in',
             ],
         },
     },
@@ -108,6 +110,15 @@ CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 # Browsers that have seen the site over HTTPS refuse plain HTTP to it for a month (Render is HTTPS-only).
 SECURE_HSTS_SECONDS = 0 if DEBUG else 60 * 60 * 24 * 30
+# Google's sign-in popup reports back to the page that opened it, which 'same-origin' would block.
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
+# Google's button checks which site it's on from the Referer, which Django's default 'same-origin'
+# leaves out. This is the browsers' own default: other sites get the origin only, never a path.
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+
+# Sign in with Google: the OAuth client ID from Google Cloud (public, not a secret).
+# Unset, the Google button is hidden and PIN sign-in works as before.
+GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

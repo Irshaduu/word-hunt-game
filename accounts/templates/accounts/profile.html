@@ -1,0 +1,82 @@
+{% extends "game/base.html" %}
+
+{% block title %}{{ player.username }} | Word Hunt{% endblock %}
+
+{% block content %}
+<div class="landing-bg">
+    <div class="page-container">
+        <a href="{% url 'landing' %}" class="btn-back"><i class="ph-bold ph-caret-left"></i> Home</a>
+
+        <div class="card glass-card profile-card">
+            <div class="profile-head">
+                {% if profile.avatar_url %}
+                <img class="profile-photo profile-photo--lg" src="{{ profile.avatar_url }}" alt="" referrerpolicy="no-referrer">
+                {% else %}
+                <div class="profile-photo profile-photo--lg profile-photo--letter" aria-hidden="true">{{ player.username|first }}</div>
+                {% endif %}
+                <div>
+                    <h1 class="profile-name">{{ player.username }}</h1>
+                    <p class="profile-meta">
+                        {% if profile.is_guest %}Demo guest, gone after a day{% else %}Joined {{ player.date_joined|date:"F Y" }}{% if rank %} · Rank #{{ rank }}{% endif %}{% endif %}
+                    </p>
+                </div>
+            </div>
+
+            <div class="profile-stats">
+                <div class="profile-stat"><span class="profile-stat__value">{{ profile.total_earned_seconds }}s</span><span class="profile-stat__label">Earned</span></div>
+                <div class="profile-stat"><span class="profile-stat__value">{{ games_played }}</span><span class="profile-stat__label">Games</span></div>
+                <div class="profile-stat"><span class="profile-stat__value">{{ profile.first_places }}</span><span class="profile-stat__label">Wins</span></div>
+            </div>
+            <div class="profile-places" title="Places 1 to 5">
+                <span>🥇 {{ places.0 }}</span><span>🥈 {{ places.1 }}</span><span>🥉 {{ places.2 }}</span><span>🥚 {{ places.3 }}</span><span>🩲 {{ places.4 }}</span>
+            </div>
+            {% block profile_extra %}{% endblock %}
+        </div>
+
+        <div class="card glass-card">
+            <h2 class="card-title"><i class="ph-duotone ph-clock-counter-clockwise"></i> Recent games</h2>
+            {% for game in games %}
+            <div class="game-row">
+                <span class="game-row__place game-row__place--{{ game.place }}">{{ game.place_label }}</span>
+                <div class="game-row__body">
+                    <div>of {{ game.of }} · {{ game.words_found }} word{{ game.words_found|pluralize }} · {{ game.seconds_left }}s left</div>
+                    <div class="game-row__with">
+                        {% if game.others %}with {% for name in game.others %}<a href="{% url 'profile' name %}">{{ name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}{% endif %}
+                    </div>
+                </div>
+                <span class="game-row__when">{{ game.ended_at|date:"M j" }}</span>
+            </div>
+            {% empty %}
+            <p class="empty-note">No games yet.{% if is_me %} Your next game with friends shows up here.{% endif %}</p>
+            {% endfor %}
+        </div>
+
+        {% if is_me %}
+        <div class="card glass-card">
+            <h2 class="card-title"><i class="ph-duotone ph-user-gear"></i> Account</h2>
+            {% if profile.google_sub %}
+            <p class="form-note"><i class="ph-duotone ph-check-circle" style="color: var(--accent-green);"></i> You sign in with Google.</p>
+            {% elif not profile.is_guest and GOOGLE_CLIENT_ID %}
+            <p class="form-note">Link Google to sign in without your PIN, on any device. Your name and stats stay the same.</p>
+            {% include "accounts/google_button.html" with google_text="signin_with" %}
+            {% endif %}
+            <a href="{% url 'logout' %}" class="btn btn-secondary profile-signout">
+                <span class="btn-text">Sign out</span>
+            </a>
+            <details class="danger-zone">
+                <summary>Delete my account</summary>
+                <form method="post" action="{% url 'delete_account' %}">
+                    {% csrf_token %}
+                    <p>This deletes your name, stats and game history for good. It can't be undone.</p>
+                    <button type="submit" name="confirm" value="yes" class="btn btn-danger">
+                        <span class="btn-text">Delete everything</span>
+                    </button>
+                </form>
+            </details>
+        </div>
+        {% endif %}
+
+        <p class="footer-note"><a href="{% url 'privacy' %}">Privacy</a></p>
+    </div>
+</div>
+{% endblock %}

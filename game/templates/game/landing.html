@@ -50,6 +50,14 @@
                 <span><i class="ph-duotone ph-warning"></i> {{ error }}</span>
             </div>
             {% endif %}
+            {% if notice %}
+            <div class="notice-banner"><span><i class="ph-duotone ph-check-circle"></i> {{ notice }}</span></div>
+            {% endif %}
+
+            {% if GOOGLE_CLIENT_ID %}
+            {% include "accounts/google_button.html" %}
+            <div class="auth-divider">or use a name and PIN</div>
+            {% endif %}
 
             <!-- Tabs -->
             <div class="auth-tabs">
@@ -102,6 +110,7 @@
 
         <p class="footer-note" style="line-height: 1.6;">
             Have fun with your <i class="ph-duotone ph-heart" style="color: #F472B6; filter: drop-shadow(0 2px 4px rgba(244, 114, 182, 0.4)); transform: scale(1.2); display: inline-block;"></i> Crew <span style="font-size: 0.75em; color: rgba(255,255,255,0.4); font-weight: 400; margin-left: 5px;">(In group calls & family gatherings)</span>
+            <br><a href="{% url 'privacy' %}">Privacy</a>
         </p>
     </div>
 </div>
@@ -183,6 +192,12 @@
         });
     });
 
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
     // Global Leaderboard Logic
     const btnGlobal = document.getElementById('btn-global-leaderboard');
     const globalDropdown = document.getElementById('global-leaderboard-dropdown');
@@ -213,7 +228,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                         <div style="display: flex; align-items: center; gap: 10px;">
                             <span style="font-family: var(--font-display); font-weight: bold; font-size: 1.2rem; color: #60A5FA; width: 24px; text-align: center;">${rankDisplay}</span>
-                            <span style="font-weight: bold; color: var(--text-primary); font-size: 1.1rem;">${p.username}</span>
+                            <span style="font-weight: bold; color: var(--text-primary); font-size: 1.1rem;">${escapeHtml(p.username)}</span>
                         </div>
                         <span style="color: var(--accent-green); font-weight: bold; font-family: var(--font-display);">${p.total_earned_seconds}s</span>
                     </div>

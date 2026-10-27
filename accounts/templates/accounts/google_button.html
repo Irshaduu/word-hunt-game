@@ -1,0 +1,34 @@
+{% comment %}
+The "Sign in with Google" button, shown only once GOOGLE_CLIENT_ID is set.
+
+Google's script draws the button and, after the player picks an account, hands
+onGoogleSignIn a signed credential. The server checks it (accounts/google.py) and answers
+with the page to open next: home, the profile (a PIN account just linked), or choose-a-name.
+{% endcomment %}
+{% if GOOGLE_CLIENT_ID %}
+<div class="google-sign-in">
+    <div id="g_id_onload" data-client_id="{{ GOOGLE_CLIENT_ID }}" data-callback="onGoogleSignIn"
+         data-auto_prompt="false" data-itp_support="true"></div>
+    <div class="g_id_signin" data-type="standard" data-theme="filled_black" data-shape="pill"
+         data-size="large" data-text="{{ google_text|default:'continue_with' }}" data-logo_alignment="left"></div>
+    <p class="google-error" id="google-error" role="alert" hidden></p>
+</div>
+<script>
+    function onGoogleSignIn(response) {
+        const error = document.getElementById('google-error');
+        const fail = (message) => {
+            error.textContent = message || 'Google sign-in failed. Please try again.';
+            error.hidden = false;
+        };
+        fetch('{% url "google_sign_in" %}', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
+            body: new URLSearchParams({ credential: response.credential }),
+        })
+            .then(r => r.json())
+            .then(data => data.next ? window.location.assign(data.next) : fail(data.error))
+            .catch(() => fail());
+    }
+</script>
+<script src="https://accounts.google.com/gsi/client" async></script>
+{% endif %}

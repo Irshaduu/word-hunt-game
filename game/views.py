@@ -13,9 +13,10 @@ from django.core.paginator import Paginator
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
 from django.utils import timezone
-from .game_manager import ROOMS, GameRoom, generate_room_code, BOT_NAME
+from accounts import names
+from .game_manager import ROOMS, GameRoom, generate_room_code
+from .stats import global_rank
 
 # One-tap demo accounts
 GUEST_LIFETIME = timedelta(days=1)
@@ -31,6 +32,8 @@ def landing(request):
     context = {}
     if 'error' in request.session:
         context['error'] = request.session.pop('error')
+    if 'notice' in request.session:
+        context['notice'] = request.session.pop('notice')
 
     if request.user.is_authenticated:
         # User is logged in, show profile stats and room actions
@@ -54,14 +57,9 @@ def landing(request):
         context['third_places'] = profile.third_places
         context['fourth_places'] = profile.fourth_places
         context['fifth_places'] = profile.fifth_places
-        
-        # Calculate global rank (demo guests are not on the board)
-        global_rank = User.objects.exclude(profile__is_guest=True).filter(
-            Q(profile__total_earned_seconds__gt=profile.total_earned_seconds) |
-            Q(profile__total_earned_seconds=profile.total_earned_seconds, id__lt=request.user.id)
-        ).count() + 1
-        context['global_rank'] = global_rank
-        
+        context['avatar_url'] = profile.avatar_url
+        context['global_rank'] = global_rank(request.user)
+
         return render(request, 'game/landing_auth.html', context)
     else:
         # Guest, show login/register
@@ -70,23 +68,21 @@ def landing(request):
 
 def register_view(request):
     if request.method == 'POST':
-        username = request.POST.get('username', '').strip().capitalize()
+        username = names.tidy(request.POST.get('username', ''))
         pin = request.POST.get('pin', '').strip()
 
         if _too_many(request, 'register', SIGNUPS_PER_HOUR):
             request.session['error'] = 'Too many new accounts from here. Try again in an hour.'
             return redirect('landing')
 
-        if not username or len(username) > 10:
-            request.session['error'] = 'Username must be 1-10 characters'
-            return redirect('landing')
-        
         if not pin or len(pin) > 4:
             request.session['error'] = 'PIN must be maximum 4 characters'
             return redirect('landing')
 
-        if username == BOT_NAME or User.objects.filter(username=username).exists():
-            request.session['error'] = 'Username already taken'
+        # The same rules as a name chosen after Google sign-in (accounts/names.py).
+        problem = names.problem_with(username)
+        if problem:
+            request.session['error'] = problem
             return redirect('landing')
 
         user = User.objects.create_user(username=username, password=pin)

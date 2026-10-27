@@ -1378,3 +1378,298 @@ html, body {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-10px); }
 }
+
+/* --- Pages: profile, privacy --- */
+.page-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    min-height: 100vh;
+    padding: 72px 16px 32px;
+    position: relative;
+    z-index: 1;
+}
+
+.page-container > .glass-card {
+    max-width: 480px;
+}
+
+.btn-back {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: var(--text-secondary);
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-decoration: none;
+}
+
+.btn-back:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: var(--text-primary);
+}
+
+.profile-head {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.profile-photo {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+.profile-photo--lg {
+    width: 72px;
+    height: 72px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.logo-section .profile-photo--lg {
+    margin-bottom: 12px;
+}
+
+.profile-photo--letter {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--accent-purple), var(--accent-pink));
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+.profile-name {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    margin: 0;
+}
+
+.profile-meta {
+    margin: 2px 0 0;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.profile-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.profile-stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 8px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: var(--radius-sm);
+}
+
+.profile-stat__value {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--accent-green);
+}
+
+.profile-stat__label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.profile-places {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+}
+
+.game-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 0.9rem;
+}
+
+.card-title + .game-row {
+    border-top: none;
+}
+
+.game-row__place {
+    min-width: 44px;
+    text-align: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    padding: 4px 6px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.game-row__place--1 {
+    background: rgba(251, 191, 36, 0.2);
+    color: var(--accent-yellow);
+}
+
+.game-row__body {
+    flex: 1;
+    min-width: 0;
+}
+
+.game-row__with {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.game-row__with a,
+.prose-card a,
+.footer-note a {
+    color: var(--accent-cyan);
+    text-decoration: none;
+}
+
+.game-row__when {
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    white-space: nowrap;
+}
+
+.empty-note {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.form-note {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin: 0 0 16px;
+    line-height: 1.5;
+}
+
+.profile-signout {
+    width: 100%;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.danger-zone {
+    margin-top: 16px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+}
+
+.danger-zone summary {
+    cursor: pointer;
+}
+
+.danger-zone p {
+    margin: 10px 0;
+}
+
+.btn-danger {
+    width: 100%;
+    justify-content: center;
+    background: rgba(248, 113, 113, 0.15);
+    color: var(--accent-red);
+    border: 1px solid rgba(248, 113, 113, 0.35);
+}
+
+.prose-card {
+    line-height: 1.6;
+    font-size: 0.95rem;
+}
+
+.prose-card h2 {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    margin: 18px 0 6px;
+    color: var(--accent-cyan);
+}
+
+.prose-card p,
+.prose-card ul {
+    margin: 0 0 10px;
+    color: var(--text-secondary);
+}
+
+.prose-card ul {
+    padding-left: 20px;
+}
+
+/* --- Sign in with Google --- */
+.google-sign-in {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px; /* Google's button draws in after its script loads */
+    margin-bottom: 16px;
+}
+
+.google-error {
+    margin: 0;
+    color: var(--accent-red);
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 4px 0 18px;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.notice-banner {
+    background: rgba(52, 211, 153, 0.12);
+    border: 1px solid rgba(52, 211, 153, 0.3);
+    border-radius: var(--radius-sm);
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    font-size: 0.9rem;
+    color: var(--accent-green);
+}
+
+/* A player's Google picture in place of their animal */
+.player-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}

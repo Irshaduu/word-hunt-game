@@ -1,6 +1,6 @@
 """
 Tests for the game staying steady when something fails:
-- a finished game's places and leftover seconds are added inside the database
+- a finished game's places and leftover seconds are added inside the database, and it is kept as a Match
 - a failed save is logged, and the game still ends for everyone
 - a background timer that crashes is logged, not lost
 """
@@ -13,7 +13,7 @@ from django.test import SimpleTestCase, TransactionTestCase
 
 from game.consumers import spawn
 from game.game_manager import ROOMS, GameRoom
-from game.models import PlayerProfile
+from game.models import Match, MatchPlayer, PlayerProfile
 from game.tests.test_practice import consumer_for
 
 
@@ -44,6 +44,9 @@ class ResultsTests(TransactionTestCase):
         ben_stats = await PlayerProfile.objects.aget(user=ben)
         self.assertEqual((asha_stats.first_places, asha_stats.total_earned_seconds), (4, 142))
         self.assertEqual((ben_stats.second_places, ben_stats.total_earned_seconds), (1, 0))
+        rows = [(r.user_id, r.place, r.seconds_left) async for r in MatchPlayer.objects.order_by('place')]
+        self.assertEqual(rows, [(asha.id, 1, 42), (ben.id, 2, 0)])
+        self.assertEqual((await Match.objects.aget()).room_code, 'RES')
 
     async def test_a_failed_save_is_logged_and_the_game_still_ends(self):
         consumer = consumer_for(self.room)

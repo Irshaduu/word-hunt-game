@@ -8,7 +8,7 @@ Written October 2026. Each phase ships on its own, so the game is finished at th
 |---|---|---|
 | 0. Steadier today | The current game holds up on real phones and networks | Done |
 | 1. Foundation | Nothing visible: the base the social features stand on | Done |
-| 2. Google sign-in | Sign in with Google, real profiles, match history | |
+| 2. Google sign-in | Sign in with Google, real profiles, match history | Done; needs a Google client ID |
 | 3. Friends | Friend requests, friends list, who's online | |
 | 4. Play together | Invite a friend; random matches, with Robo as the fallback | |
 | 5. Voice in games | Talk to up to 3 others during a game | |
@@ -74,17 +74,26 @@ Done when: all tests pass, with new ones for dropping, leaving and tabs (129 pas
 
 ## Phase 2 — Google sign-in and profiles
 
-- `django-allauth` with Google only, using the `openid`, `email` and `profile` scopes.
-- Existing PIN players link Google once from their profile. PIN sign-in then closes to new accounts, and later closes entirely.
-- Each profile has:
-  - a display name (not unique)
-  - a friend code (unique, short, easy to share)
-  - an avatar URL straight from Google's CDN, never re-hosted on Render
-  - stats and the last 20 games
-- New tables: `Match` (room code, start and end time, practice or not) and `MatchPlayer` (match, user, place, words found, seconds left). Both are written once per game, in one transaction.
-- A privacy-policy page, which Google's consent screen needs.
+Decided while building it:
 
-Done when: a new person signs in with Google in two taps, and an existing PIN player keeps their stats after linking.
+- **Google's own button, with the token checked on the server, instead of django-allauth.** Google Identity Services hands the page a signed ID token. `accounts/google.py` checks Google's signature (with PyJWT, against Google's published keys, which it caches), that the token is for this app (its audience is our client ID), and that it hasn't expired. That is one view and two profile fields, instead of allauth's tables, settings and pages. The only setting is the client ID, and it isn't a secret.
+- **No separate display name and no friend code.** A new player chooses a unique game name once, under the same rules as a PIN sign-up, so friends find each other by name.
+- **PIN sign-up stays open.** It's the zero-friction way in, and the demo still needs no account at all. Google is offered first once it's set up.
+- **No email is stored**, only Google's account id and the link to the account's picture.
+
+Done:
+
+- [x] Sign in with Google on the home page, hidden until `GOOGLE_CLIENT_ID` is set. A new player picks a name; a returning one goes straight in.
+- [x] PIN players link Google from their profile and keep their name and stats.
+- [x] Profiles show the player's picture, stats, rank, and last 20 games with who was in them. Anyone signed in can open anyone's.
+- [x] Every game between people is kept as a `Match`, with each player's `MatchPlayer` result, in the same transaction as the stats.
+- [x] Google pictures show in the lobby, loaded from Google's CDN. Only `googleusercontent.com` links are kept.
+- [x] "Delete my account" on the profile page removes the player and everything kept about them.
+- [x] A privacy page, linked from the menu and the home page.
+- [x] The server now accepts only letters and digits in names, and the leaderboard escapes names.
+- [x] Saving a user no longer re-saves their profile. That happened on every sign-in, and it could write a stale copy back over newer stats.
+
+Done when: a new person signs in with Google in two taps, and an existing PIN player keeps their stats after linking. Every flow passes with Google's check mocked; a real sign-in needs the client ID ([SETUP.md](SETUP.md)).
 
 ## Phase 3 — Friends
 

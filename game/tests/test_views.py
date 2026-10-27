@@ -76,6 +76,11 @@ class RegisterViewTests(TestCase):
         }, follow=True)
         self.assertRedirects(response, reverse('landing'))
 
+    def test_register_rejects_names_with_symbols(self):
+        response = self.client.post(reverse('register'), {'username': '<b>x</b>', 'pin': '1234'}, follow=True)
+        self.assertContains(response, 'Use 1-10 letters or digits')
+        self.assertFalse(User.objects.exists())
+
     def test_register_get_redirects_to_landing(self):
         response = self.client.get(reverse('register'))
         self.assertRedirects(response, reverse('landing'))

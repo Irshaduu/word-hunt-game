@@ -201,6 +201,17 @@
                 <span class="player-name">${escapeHtml(player.username)}</span>
                 ${badges}
             `;
+            if (player.avatar) {
+                // Their Google picture, which the server only ever takes from Google's CDN.
+                const img = document.createElement('img');
+                img.src = player.avatar;
+                img.alt = '';
+                img.referrerPolicy = 'no-referrer';
+                const box = item.querySelector('.player-avatar');
+                box.textContent = '';
+                box.style.background = 'transparent';
+                box.appendChild(img);
+            }
 
             listEl.appendChild(item);
         });

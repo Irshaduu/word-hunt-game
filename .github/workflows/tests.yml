@@ -17,4 +17,4 @@ jobs:
       # The manifest static storage needs collected files before any template renders.
       - run: python manage.py collectstatic --noinput
       # No DB_HOST here, so the tests run on SQLite, as they do locally.
-      - run: python manage.py test game
+      - run: python manage.py test
