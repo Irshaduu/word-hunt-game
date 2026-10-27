@@ -9,9 +9,11 @@ Tests for HTTP views:
 - Leaderboard API (structure, pagination)
 - Live games API (structure)
 - Health check (tiny, no database)
+- Sign-in limits (wrong PINs and new accounts, per address)
 """
 
-from django.test import TestCase, Client
+from django.core.cache import cache
+from django.test import TestCase, Client, override_settings
 from django.urls import reverse
 from django.contrib.auth.models import User
 from game.game_manager import ROOMS, GameRoom
@@ -36,6 +38,7 @@ class LandingViewTests(TestCase):
 
 class RegisterViewTests(TestCase):
     def setUp(self):
+        cache.clear()  # sign-up counts per address live in the cache
         self.client = Client()
 
     def test_register_success_logs_in_and_redirects(self):
@@ -80,6 +83,7 @@ class RegisterViewTests(TestCase):
 
 class LoginViewTests(TestCase):
     def setUp(self):
+        cache.clear()  # wrong-PIN counts per address live in the cache
         self.client = Client()
         User.objects.create_user(username='Alice', password='1234')
 
@@ -219,6 +223,35 @@ class LiveGamesAPITests(TestCase):
         response = self.client.get(reverse('api_live_games'))
         codes = [g['room_code'] for g in response.json()['games']]
         self.assertIn('ACT', codes)
+
+
+@override_settings(PASSWORD_HASHERS=['django.contrib.auth.hashers.MD5PasswordHasher'])  # fast hashing for many sign-ins
+class SignInLimitTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        User.objects.create_user(username='Alice', password='1234')
+
+    def test_ten_wrong_pins_lock_the_address_for_a_while(self):
+        for _ in range(10):
+            self.client.post(reverse('login'), {'username': 'Alice', 'pin': '0000'})
+        response = self.client.post(reverse('login'), {'username': 'Alice', 'pin': '1234'}, follow=True)
+        self.assertContains(response, 'Too many wrong PINs')
+        self.assertNotIn('_auth_user_id', self.client.session)
+
+    def test_right_pins_are_not_counted(self):
+        for _ in range(12):
+            self.client.post(reverse('login'), {'username': 'Alice', 'pin': '1234'})
+            self.client.logout()
+        self.client.post(reverse('login'), {'username': 'Alice', 'pin': '1234'})
+        self.assertIn('_auth_user_id', self.client.session)
+
+    def test_new_accounts_are_limited_per_address(self):
+        for i in range(10):
+            self.client.post(reverse('register'), {'username': f'New{i}', 'pin': '1234'})
+            self.client.logout()
+        response = self.client.post(reverse('register'), {'username': 'Late', 'pin': '1234'}, follow=True)
+        self.assertContains(response, 'Too many new accounts')
+        self.assertFalse(User.objects.filter(username='Late').exists())
 
 
 class HealthzTests(TestCase):

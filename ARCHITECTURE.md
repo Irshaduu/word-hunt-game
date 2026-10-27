@@ -18,7 +18,7 @@ Most real-time web applications default to using managed services (e.g., managed
 
 To achieve a true $0 operating cost while supporting our target audience, we made the following intentional design trade-offs:
 
-- **Neon PostgreSQL vs. SQLite:** User profiles, leaderboard stats, and sessions are stored in a managed PostgreSQL instance on [Neon](https://neon.tech) (free tier). This provides true persistence that survives Render service restarts and deployments — the root cause of the original ephemeral data loss on free-tier SQLite. Neon's free tier (0.5 GB) is more than sufficient for the intended user base.
+- **Neon PostgreSQL vs. SQLite:** User profiles, leaderboard stats, and sessions are stored in a managed PostgreSQL instance on [Neon](https://neon.tech) (free tier). This provides true persistence that survives Render service restarts and deployments — the root cause of the original ephemeral data loss on free-tier SQLite. Neon's free tier (1 GB of storage, 100 compute-hours a month) is more than sufficient for the intended user base. [ROADMAP.md](ROADMAP.md) lists every free-tier limit the game has to fit, and the rules that keep it inside them.
 - **Local Development Fallback:** When the `DB_HOST` environment variable is absent (i.e., on a developer's machine), `settings.py` automatically falls back to SQLite. This means contributors can clone and run the project locally with zero external setup — no Neon account or credentials required.
 
 ## 3. In-Memory State Management & YAGNI
@@ -45,6 +45,9 @@ Real-world mobile networks are flaky. To handle this:
 - We don't instantly remove players from a game upon WebSocket disconnect.
 - Instead, the server marks them as `is_connected = False`.
 - When the client reconnects (using exponential backoff), the server automatically resyncs the entire current game state payload, allowing them to resume exactly where they left off without losing their time bank.
+- **The lobby keeps seats too.** A dropped lobby socket (sharing the code in another app, a locked phone) keeps the player's seat, and host, for two minutes (`LOBBY_GRACE_SECONDS`), shown as "Away". The Leave button gives the seat up at once. A game starts with whoever is present, so no round waits on an empty seat.
+- **Pages know when to stop.** A socket that can't join (the room is gone after a restart, full or already playing, or nobody is signed in) is accepted and then closed with code `4004`. The page stops retrying and opens `/join/<code>/`, which says why.
+- **Back from the background.** Returning to a lobby or game page reconnects at once instead of waiting out the backoff.
 
 ## 6. Soundboard Architecture & Spam Prevention
 

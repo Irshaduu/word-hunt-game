@@ -11,7 +11,9 @@
     let gameState = null;
     let ws = null;
     let reconnectAttempts = 0;
+    let reconnectTimer = null;
     const MAX_RECONNECT = 15;
+    const CLOSE_CANNOT_JOIN = 4004;  // consumers.py: the room can't take this socket, so don't retry
     let timerInterval = null;
     let myTimerStart = null;  // local timestamp for smooth countdown
     let myTimeBank = 100;
@@ -121,26 +123,34 @@
     const wsUrl = `${wsProtocol}//${window.location.host}/ws/game/${ROOM_CODE}/`;
 
     function connect() {
-        ws = new WebSocket(wsUrl);
+        clearTimeout(reconnectTimer);
+        const socket = new WebSocket(wsUrl);
+        ws = socket;
 
-        ws.onopen = () => {
+        socket.onopen = () => {
             console.log('Game WS connected');
             reconnectAttempts = 0;
         };
 
-        ws.onclose = (e) => {
+        socket.onclose = (e) => {
             console.log('Game WS closed:', e.code);
+            if (socket !== ws) return;  // an older socket that was already replaced
             stopTimer();
+            if (e.code === CLOSE_CANNOT_JOIN) {
+                // The game is gone (the server restarted, or it ended long ago): the join page says so.
+                window.location.href = `/join/${ROOM_CODE}/`;
+                return;
+            }
             if (reconnectAttempts < MAX_RECONNECT) {
                 const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000);
                 reconnectAttempts++;
-                setTimeout(connect, delay);
+                reconnectTimer = setTimeout(connect, delay);
             }
         };
 
-        ws.onerror = (e) => console.error('Game WS error:', e);
+        socket.onerror = (e) => console.error('Game WS error:', e);
 
-        ws.onmessage = (event) => {
+        socket.onmessage = (event) => {
             const data = JSON.parse(event.data);
             handleMessage(data);
         };
@@ -150,6 +160,15 @@
     window.addEventListener('beforeunload', () => {
         if (ws && ws.readyState === WebSocket.OPEN) {
             ws.close();
+        }
+    });
+
+    // Back from another app: if the phone dropped the socket meanwhile, rejoin and resync now
+    // instead of waiting out the back-off.
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && (!ws || ws.readyState === WebSocket.CLOSED)) {
+            reconnectAttempts = 0;
+            connect();
         }
     });
 

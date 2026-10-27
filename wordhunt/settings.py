@@ -106,3 +106,17 @@ CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Logging. With DEBUG off, Django's default mails request errors to ADMINS, and there are
+# none, so a crashing page left no trace in Render's logs. Print them instead.
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {'class': 'logging.StreamHandler'},
+    },
+    'loggers': {
+        'django.request': {'handlers': ['console'], 'level': 'ERROR', 'propagate': False},
+        'game': {'handlers': ['console'], 'level': 'INFO'},
+    },
+}
