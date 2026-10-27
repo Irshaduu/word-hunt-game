@@ -28,6 +28,7 @@ INSTALLED_APPS = [
     'game',
     'accounts',
     'social',
+    'voice',
 ]
 
 MIDDLEWARE = [
@@ -120,6 +121,11 @@ SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 # Sign in with Google: the OAuth client ID from Google Cloud (public, not a secret).
 # Unset, the Google button is hidden and PIN sign-in works as before.
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
+
+# Voice in game rooms: Cloudflare TURN relays sound for phones that can't connect directly.
+# Unset, voice uses STUN only and still works wherever direct connections do.
+CLOUDFLARE_TURN_KEY_ID = os.environ.get('CLOUDFLARE_TURN_KEY_ID', '')
+CLOUDFLARE_TURN_API_TOKEN = os.environ.get('CLOUDFLARE_TURN_API_TOKEN', '')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

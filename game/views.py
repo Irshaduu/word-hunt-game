@@ -245,6 +245,7 @@ def lobby(request, room_code):
         'is_creator': username == room.creator,
         'auto_start': bool(room.expected),
         'friends': friends,
+        'voice': not room.matchmade,  # strangers in a random match get no voice
     })
 
 
@@ -262,9 +263,11 @@ def game_view(request, room_code):
     if room_code not in ROOMS:
         return redirect('landing')
 
+    room = ROOMS[room_code]
     return render(request, 'game/game.html', {
         'room_code': room_code,
         'username': username,
+        'voice': not room.matchmade and username in room.players,
     })
 
 

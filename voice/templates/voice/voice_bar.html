@@ -1,0 +1,7 @@
+{% load static %}
+{% comment %}Voice chat for a game room (voice/static/voice/voice.js). Included by the lobby and game pages when the room has voice.{% endcomment %}
+<script>
+    window.VOICE_ROOM = '{{ room_code|escapejs }}';
+    window.VOICE_ME = '{{ request.user.username|escapejs }}';
+</script>
+<script src="{% static 'voice/voice.js' %}?v=1" defer></script>

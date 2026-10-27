@@ -70,6 +70,7 @@
     </div>
 </div>
 
+{% if voice %}{% include "voice/voice_bar.html" %}{% endif %}
 <script>
     const ROOM_CODE = '{{ room_code }}';
     const USERNAME = '{{ username }}';

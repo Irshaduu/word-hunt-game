@@ -38,6 +38,17 @@ You need a **client ID**. It isn't a secret: it shows in the page source. There 
 
 To try it on your computer, set the same variable before `python manage.py runserver`.
 
+## 3. Voice relay for mobile networks (Phase 5, about 5 minutes)
+
+Voice in games works without this wherever phones can connect directly. Some mobile networks
+can't, and Cloudflare's TURN relays their sound (1,000 GB a month free).
+
+1. [Cloudflare dashboard](https://dash.cloudflare.com/) → **Realtime → TURN Server** → **Create**.
+2. Copy the **Turn Token ID** and the **API Token** it shows once.
+3. Render → Environment: add `CLOUDFLARE_TURN_KEY_ID` and `CLOUDFLARE_TURN_API_TOKEN`.
+
+The token stays on the server: browsers only ever get credentials that expire in four hours.
+
 ## Optional: lock the Host header
 
 Render → Environment → `DJANGO_ALLOWED_HOSTS` = `word-hunt-game.onrender.com`

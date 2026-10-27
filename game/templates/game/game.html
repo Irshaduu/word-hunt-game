@@ -28,6 +28,7 @@
                     </div>
                 </div>
             </div>
+            <div class="voice-slot" id="voice-slot"></div>
             <button class="btn-exit" onclick="document.getElementById('exit-overlay').classList.add('visible')"><i class="ph-duotone ph-x"></i> Exit</button>
         </div>
         <div class="scoreboard" id="scoreboard">
@@ -139,4 +140,5 @@
     const IS_SPECTATOR = {{ is_spectator|yesno:"true,false" }};
 </script>
 <script src="{% static 'game/js/game.js' %}?v=9"></script>
+{% if voice %}{% include "voice/voice_bar.html" %}{% endif %}
 {% endblock %}

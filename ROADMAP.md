@@ -11,7 +11,7 @@ Written October 2026. Each phase ships on its own, so the game is finished at th
 | 2. Google sign-in | Sign in with Google, real profiles, match history | Done; needs a Google client ID |
 | 3. Friends | Friend requests, friends list, who's online | Done |
 | 4. Play together | Invite a friend; random matches, with Robo as the fallback | Done |
-| 5. Voice in games | Talk to up to 3 others during a game | |
+| 5. Voice in games | Talk to up to 3 others during a game | Code in; needs tests and a two-phone check |
 | 6. Voice rooms | Rooms where up to 8 people talk | |
 
 ## The $0 budget
