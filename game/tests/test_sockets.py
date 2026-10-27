@@ -6,6 +6,7 @@ Tests for who a WebSocket speaks for, and how a lobby seat is kept:
 - a dropped lobby socket keeps its seat, shown as away; Leave gives it up at once
 - a seat nobody comes back to is freed after the grace, and an empty lobby closes
 - a player back after missing the start is sent on to the game
+- mid-game, Leave puts a player out at once, and so does staying away past the grace
 """
 
 import asyncio
@@ -15,7 +16,7 @@ from channels.testing import WebsocketCommunicator
 from django.contrib.auth.models import User
 from django.test import Client, TransactionTestCase
 
-from game.consumers import CLOSE_CANNOT_JOIN
+from game.consumers import CLOSE_CANNOT_JOIN, drop_if_still_away
 from game.game_manager import ROOMS, GameRoom
 from wordhunt.asgi import application
 
@@ -138,3 +139,61 @@ class LobbySeatTests(TransactionTestCase):
     async def test_a_lobby_that_is_gone_turns_the_socket_away(self):
         ROOMS.clear()
         await assert_turned_away(self, socket('/ws/lobby/ABC/', self.sessions['Alice']))
+
+
+class LeavingMidGameTests(TransactionTestCase):
+    """Mid-game, Leave puts a player out at once, and staying away past the grace does too."""
+
+    def setUp(self):
+        ROOMS.clear()
+        self.sessions = {}
+        for name in ('Alice', 'Bob'):
+            user = User.objects.create_user(username=name, password='1111')
+            client = Client()
+            client.force_login(user)
+            self.sessions[name] = client.cookies['sessionid'].value
+        room = GameRoom('ABC', creator='Alice')
+        room.add_player('Alice')
+        room.add_player('Bob')
+        room.start_game()
+        ROOMS['ABC'] = room
+
+    def tearDown(self):
+        ROOMS.clear()
+
+    async def play(self, name):
+        ws = socket('/ws/game/ABC/', self.sessions[name])
+        connected, _ = await ws.connect()
+        self.assertTrue(connected)
+        self.assertEqual((await ws.receive_json_from())['type'], 'game_state')
+        return ws
+
+    async def test_leave_puts_the_player_out_at_once(self):
+        alice = await self.play('Alice')
+        bob = await self.play('Bob')
+        await bob.send_json_to({'type': 'leave'})
+        out = await alice.receive_json_from()
+        self.assertEqual((out['type'], out['username'], out['reason']), ('player_eliminated', 'Bob', 'left'))
+        over = await alice.receive_json_from()
+        self.assertEqual((over['type'], over['winner']), ('game_over', 'Alice'))
+        await bob.disconnect()
+        await alice.disconnect()
+
+    @mock.patch('game.consumers.GAME_GRACE_SECONDS', 0)
+    async def test_a_player_away_past_the_grace_is_out(self):
+        alice = await self.play('Alice')
+        bob = await self.play('Bob')
+        await bob.disconnect()
+        out = await alice.receive_json_from()
+        self.assertEqual((out['type'], out['username'], out['reason']), ('player_eliminated', 'Bob', 'left'))
+        self.assertTrue(ROOMS['ABC'].players['Bob'].is_eliminated)
+        await alice.disconnect()
+
+    @mock.patch('game.consumers.GAME_GRACE_SECONDS', 0)
+    async def test_back_within_the_grace_keeps_playing(self):
+        room = ROOMS['ABC']
+        room.socket_opened('Bob', 'first-page')
+        away_since = room.socket_closed('Bob', 'first-page')
+        room.socket_opened('Bob', 'page-after-reload')
+        await drop_if_still_away(room, 'Bob', away_since)
+        self.assertFalse(room.players['Bob'].is_eliminated)

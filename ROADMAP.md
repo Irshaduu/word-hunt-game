@@ -6,8 +6,8 @@ Written October 2026. Each phase ships on its own, so the game is finished at th
 
 | Phase | What players get | Status |
 |---|---|---|
-| 0. Steadier today | The current game holds up on real phones and networks | In progress |
-| 1. Foundation | Nothing visible: the base the social features stand on | Next |
+| 0. Steadier today | The current game holds up on real phones and networks | Done |
+| 1. Foundation | Nothing visible: the base the social features stand on | Done |
 | 2. Google sign-in | Sign in with Google, real profiles, match history | |
 | 3. Friends | Friend requests, friends list, who's online | |
 | 4. Play together | Invite a friend; random matches, with Robo as the fallback | |
@@ -47,22 +47,30 @@ Make what exists hold up on real phones and real networks before adding anything
 - [x] **Results are added inside the database**, one `UPDATE … SET x = x + n` per player, so two saves can't overwrite each other. A failed save is logged instead of silently dropped.
 - [x] **Wrong PINs (10 per 15 minutes) and new accounts (10 per hour) are limited per address**, so nobody can guess a 4-character PIN or flood a 0.1-CPU server with password hashing.
 - [x] **Icons load two pinned stylesheets** (bold and duotone, v2.1.2) instead of an unpinned script that pulled in all six.
-- [ ] **Tests run on GitHub Actions** on every push. The workflow is in `.github/workflows/tests.yml`; it first runs on the next push.
+- [x] **Tests run on GitHub Actions** on every push and pull request (`.github/workflows/tests.yml`); first green on PR #1.
 
 ## Phase 1 — Foundation
 
-The changes the social features stand on. Players should notice nothing.
+The changes the social features stand on. Players should notice nothing, except that a game no longer waits for someone who left.
 
-1. **Players are keyed by user id, not username.** Rooms (`GameRoom.players`), turn order, saved results and the client all identify players by name today. With Google sign-in, names stop being unique and people can change them. Messages carry `{id, name}`, and the client compares ids.
-2. **A room is one page.** Lobby and game merge into `/room/<code>/` with two views and one socket. This way a voice call (Phase 5) survives the game starting and ending.
-3. **A room runs its own clock.** The turn loop (`_auto_pick_timer`, `_wait_and_start_hunt`, `monitor_timers`, `finish_round`) moves out of `GameConsumer` into a runner task owned by the room. Invited and matchmade rooms need this, because no player's socket "owns" them.
+Decided while building it:
 
-   The runner also settles what happens when a player drops mid-game. Today the round waits until that player's time bank drains, which can take up to 100 seconds. Simply not waiting for them is wrong: rounds where they're the only hunter would end instantly, they'd stop losing time, and an absent player could outlast the ones still playing. One candidate rule: a player gone for more than 30 seconds is out.
-4. **One app-wide socket.** `/ws/me/`, opened from `base.html` on every page, carries online status, friend requests and invites.
-5. **The `game` app splits** into `accounts` (sign-in, profile), `social` (friends), `play` (rooms, engine, matchmaking) and `voice` (signalling, TURN credentials). Keep Django's `User` + `PlayerProfile`: switching to a custom user model isn't worth the migration.
-6. **Hardening:** `ALLOWED_HOSTS` from Render's `RENDER_EXTERNAL_HOSTNAME`, DEBUG off unless switched on, HSTS, and pinned versions for every CDN file.
+- **Usernames stay the key.** They are unique and chosen by the player. Google sign-in (Phase 2) asks a new player to choose one too, so nothing has to move to ids, and friends can be found by name.
+- **Lobby and game stay two pages.** Voice (Phase 5) rejoins on its own when the page changes, at the cost of about a second of silence when a game starts and ends. That is less risk than rebuilding both pages as one.
+- **The turn loop stays in `GameConsumer`.** Its methods only need the channel layer and the room's group, so a consumer with no socket (`driver_for`) can move a game on from a timer. No player's socket has to "own" the room.
+- **New features get their own apps** (`accounts`, `social`, `voice`), and `game` stays the game. Renaming an installed app would mean moving tables on Neon for nothing a player sees.
+- **The app-wide socket** (`/ws/me/`) arrives with its first user, friends, in Phase 3.
+- **`ALLOWED_HOSTS` is opt-in** (`DJANGO_ALLOWED_HOSTS`). A wrong value would answer every request with 400, so it isn't guessed while nobody is watching the deploy. DEBUG stays on by default so the local setup still needs no `.env`.
 
-Done when: all tests pass, with new ones for the runner, and two phones play a full game with no visible change.
+Done:
+
+- [x] **A player who drops mid-game is out after 30 seconds** (`GAME_GRACE_SECONDS`), so nobody waits up to 100 seconds for their time bank to drain. Coming back sooner keeps them in the game. A dropped picker gets a word picked at once.
+- [x] **The game page's Leave button puts you out at once**, as its dialog always said it would. Everyone else sees "left the game" instead of "out of time".
+- [x] **Each player's open pages are counted.** Closing one of two tabs doesn't make you away, and a socket left over from before Play Again can't either.
+- [x] **The hunt never starts after the game has ended**, for example when someone leaves during the 6-second word reveal.
+- [x] **Hardening:** HSTS for a month when DEBUG is off, and an opt-in Host-header allow list.
+
+Done when: all tests pass, with new ones for dropping, leaving and tabs (129 pass).
 
 ## Phase 2 — Google sign-in and profiles
 

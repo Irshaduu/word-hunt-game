@@ -11,6 +11,7 @@ import random
 import time as time_mod
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.layers import get_channel_layer
 from django.db import transaction
 from django.db.models import F
 from .game_manager import (
@@ -23,6 +24,9 @@ logger = logging.getLogger(__name__)
 
 # How long a lobby seat is kept after its socket drops (another app, a locked phone).
 LOBBY_GRACE_SECONDS = 120
+
+# How long a player can be away from a game in progress before they're out of it.
+GAME_GRACE_SECONDS = 30
 
 # Close code for "this socket can't join, don't retry": the room is gone, full or already
 # playing, or nobody is signed in. The page then opens /join/<code>/, which says which.
@@ -53,6 +57,32 @@ async def turn_away(consumer):
     """Refuse a socket so its page stops retrying: accept, then close with CLOSE_CANNOT_JOIN."""
     await consumer.accept()
     await consumer.close(code=CLOSE_CANNOT_JOIN)
+
+
+def driver_for(room):
+    """A GameConsumer with no socket, to move a room's game on from a timer.
+
+    The turn loop's methods only use the channel layer and the room's group, so this is all
+    they need (the tests build their consumers the same way).
+    """
+    driver = GameConsumer()
+    driver.channel_layer = get_channel_layer()
+    driver.room_code = room.room_code
+    driver.group_name = f'game_{room.room_code}'
+    driver.username = None
+    return driver
+
+
+async def drop_if_still_away(room, username, away_since):
+    """A player away from a game in progress for longer than the grace is out of it."""
+    await asyncio.sleep(GAME_GRACE_SECONDS)
+    player = room.players.get(username)
+    # away_since names the absence: a player who came back (and maybe went again since) is not this one.
+    if (ROOMS.get(room.room_code) is not room or room.state in (LOBBY, GAME_OVER)
+            or player is None or player.away_since != away_since):
+        return
+    if room.drop_player(username):
+        await driver_for(room).after_drop(room, username)
 
 
 @database_sync_to_async
@@ -100,6 +130,7 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         if not success:
             await turn_away(self)
             return
+        room.socket_opened(self.username, self.channel_name)
         self.seated = True
 
         # Join channel group
@@ -123,15 +154,16 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         room = ROOMS.get(self.room_code)
         if room is None or getattr(self, 'left', False):
             return
-        if room.state != LOBBY:
-            # Off to the game page: marked gone until the game socket connects.
-            room.remove_player(self.username)
-            return
-
-        # Another app or a locked phone: the seat is kept for a while, shown as away.
-        away_since = room.mark_away(self.username)
-        spawn(self._free_seat_later(room, self.username, away_since))
-        await self.broadcast_players(room)
+        away_since = room.socket_closed(self.username, self.channel_name)
+        if away_since is None:
+            return  # still here on another page
+        if room.state == LOBBY:
+            # Another app or a locked phone: the seat is kept for a while, shown as away.
+            spawn(self._free_seat_later(room, self.username, away_since))
+            await self.broadcast_players(room)
+        elif room.state != GAME_OVER:
+            # Off to the game page, normally there within a second; if not, out after the grace.
+            spawn(drop_if_still_away(room, self.username, away_since))
 
     async def _free_seat_later(self, room, username, away_since):
         """Give the seat up if its player hasn't come back from this absence within the grace."""
@@ -239,8 +271,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             room.spectators.add(self.username)
         else:
             self.role = 'player'
-            # Mark player as connected (handles reconnection)
-            room.players[self.username].is_connected = True
+            room.socket_opened(self.username, self.channel_name)  # back in the game, if they'd dropped
 
         self.last_sound_time = 0
 
@@ -272,8 +303,9 @@ class GameConsumer(AsyncWebsocketConsumer):
         if hasattr(self, 'room_code') and self.room_code in ROOMS:
             room = ROOMS[self.room_code]
             if self.username in room.players:
-                player = room.players[self.username]
-                player.is_connected = False
+                away_since = room.socket_closed(self.username, self.channel_name)
+                if away_since is not None and room.state not in (LOBBY, GAME_OVER):
+                    spawn(drop_if_still_away(room, self.username, away_since))
             elif getattr(self, 'role', None) == 'spectator':
                 if self.username in room.spectators:
                     room.spectators.remove(self.username)
@@ -312,6 +344,10 @@ class GameConsumer(AsyncWebsocketConsumer):
             }))
         elif msg_type == 'play_sound':
             await self.handle_play_sound(data)
+        elif msg_type == 'leave':
+            # The Leave button: out now, as its dialog warns, rather than after the grace.
+            if room.state not in (LOBBY, GAME_OVER) and room.drop_player(self.username):
+                await self.after_drop(room, self.username)
 
     async def handle_play_sound(self, data):
         """Handle a player triggering a soundboard sound with rate limiting."""
@@ -402,6 +438,9 @@ class GameConsumer(AsyncWebsocketConsumer):
     async def _wait_and_start_hunt(self, room):
         # Wait 6.0 seconds for the popup
         await asyncio.sleep(6.0)
+        # The game can end meanwhile, when a player leaves and only one is left.
+        if ROOMS.get(room.room_code) is not room or room.state != SHOWING:
+            return
 
         # Transition to hunting phase
         room.start_hunt()
@@ -523,6 +562,25 @@ class GameConsumer(AsyncWebsocketConsumer):
             await self.finish_round(room)
         return None
 
+    async def after_drop(self, room, username):
+        """A player is out for leaving: tell the room, then move the game on if that settles anything."""
+        await self.channel_layer.group_send(
+            self.group_name,
+            {
+                'type': 'player_eliminated',
+                'username': username,
+                'players': room.get_player_list(),
+                'reason': 'left',
+            }
+        )
+        is_over, winner = room.check_game_over()
+        if is_over:
+            await self.broadcast_game_over(room, winner)
+        elif room.state == PICKING and room.current_picker == username:
+            await self._pick_for(room, username)  # nobody waits out a picker who is gone
+        elif room.state == HUNTING and room.check_round_complete():
+            await self.finish_round(room)
+
     async def finish_round(self, room):
         """End the current round, process eliminations, advance to next turn."""
         # A find and the timer loop can both see the round complete; only the first one ends it.
@@ -639,6 +697,7 @@ class GameConsumer(AsyncWebsocketConsumer):
             'type': 'player_eliminated',
             'username': event['username'],
             'players': event['players'],
+            'reason': event.get('reason', 'time'),  # 'left': gone too long, or pressed Leave
         }))
 
     async def round_end(self, event):

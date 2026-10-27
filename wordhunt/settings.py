@@ -11,7 +11,9 @@ SECRET_KEY = os.environ.get(
 
 DEBUG = os.environ.get('DJANGO_DEBUG', 'True').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = ['*']
+# DJANGO_ALLOWED_HOSTS (comma-separated, e.g. word-hunt-game.onrender.com) locks the Host header
+# down; left unset, any host is accepted, as before.
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(',') if h.strip()]
 CSRF_TRUSTED_ORIGINS = ['https://*.onrender.com', 'https://word-hunt-game.onrender.com']
 
 INSTALLED_APPS = [
@@ -104,6 +106,8 @@ STORAGES = {
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
+# Browsers that have seen the site over HTTPS refuse plain HTTP to it for a month (Render is HTTPS-only).
+SECURE_HSTS_SECONDS = 0 if DEBUG else 60 * 60 * 24 * 30
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 

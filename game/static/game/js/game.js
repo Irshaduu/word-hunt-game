@@ -687,7 +687,9 @@
             document.querySelectorAll('.arena-word').forEach(w => w.classList.add('disabled'));
         }
 
-        showToast(`💀 ${data.username} is out of time!`);
+        showToast(data.reason === 'left'
+            ? `👋 ${data.username} left the game`
+            : `💀 ${data.username} is out of time!`);
     }
 
     // --- Round End ---
@@ -930,6 +932,15 @@
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+
+    // Leaving mid-game puts you out at once, as the dialog warns, rather than after the 30 s grace.
+    const btnConfirmLeave = document.getElementById('btn-confirm-leave');
+    if (btnConfirmLeave) {
+        btnConfirmLeave.addEventListener('click', () => {
+            send({ type: 'leave' });
+            window.location.href = '/';
+        });
     }
 
     // --- Play Again & Home ---

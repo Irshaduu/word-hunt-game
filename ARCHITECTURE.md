@@ -48,6 +48,7 @@ Real-world mobile networks are flaky. To handle this:
 - **The lobby keeps seats too.** A dropped lobby socket (sharing the code in another app, a locked phone) keeps the player's seat, and host, for two minutes (`LOBBY_GRACE_SECONDS`), shown as "Away". The Leave button gives the seat up at once. A game starts with whoever is present, so no round waits on an empty seat.
 - **Pages know when to stop.** A socket that can't join (the room is gone after a restart, full or already playing, or nobody is signed in) is accepted and then closed with code `4004`. The page stops retrying and opens `/join/<code>/`, which says why.
 - **Back from the background.** Returning to a lobby or game page reconnects at once instead of waiting out the backoff.
+- **Mid-game, the grace is 30 seconds.** A player whose last socket has been closed for 30 seconds (`GAME_GRACE_SECONDS`) is out of the game and ranked last, so a round never waits for an absent player's time bank to drain. The game page's Leave button does the same at once. Sockets are counted per player, so a second tab, or a socket left over from before Play Again, never marks anyone away. The timer moves the game on through `driver_for(room)`, a `GameConsumer` with no socket: the turn loop only needs the channel layer and the room's group.
 
 ## 6. Soundboard Architecture & Spam Prevention
 

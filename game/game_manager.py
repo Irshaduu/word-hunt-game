@@ -58,7 +58,8 @@ class PlayerState:
         self.found_current_word = False
         self.hunt_start_time = None  # server timestamp when hunt started for this player
         self.is_connected = True
-        self.away_since = None       # when their lobby socket dropped; None while they're here
+        self.away_since = None       # when their last socket dropped; None while they're here
+        self.sockets = set()         # their open lobby/game sockets (a second tab is a second socket)
 
     def to_dict(self):
         # Calculate effective time bank (subtract elapsed hunt time if active)
@@ -151,9 +152,9 @@ class GameRoom:
         return True, None
 
     def mark_away(self, username):
-        """A lobby socket dropped (another app, a locked phone): the player keeps their seat for now.
+        """The player's socket dropped (another app, a locked phone, a lost signal): seat kept for now.
 
-        Returns when they went away, which names this absence for the grace timer in consumers.py.
+        Returns when they went away, which names this absence for the grace timers in consumers.py.
         """
         self.update_activity()
         player = self.players.get(username)
@@ -162,6 +163,42 @@ class GameRoom:
         player.is_connected = False
         player.away_since = time.time()
         return player.away_since
+
+    def socket_opened(self, username, socket_id):
+        """One of the player's pages connected: they're here."""
+        player = self.players.get(username)
+        if player is not None:
+            player.sockets.add(socket_id)
+            player.is_connected = True
+            player.away_since = None
+
+    def socket_closed(self, username, socket_id):
+        """One of the player's pages disconnected.
+
+        Returns when they went away if it was their last socket, else None: still here in another
+        tab, or a stale socket from before Play Again rebuilt the room.
+        """
+        player = self.players.get(username)
+        if player is None or socket_id not in player.sockets:
+            return None
+        player.sockets.discard(socket_id)
+        if player.sockets:
+            return None
+        return self.mark_away(username)
+
+    def drop_player(self, username):
+        """Out of a game in progress: they left, or stayed away too long.
+
+        No time left, so they rank below everyone still playing. Returns False if already out.
+        """
+        player = self.players.get(username)
+        if player is None or player.is_eliminated:
+            return False
+        self.update_activity()
+        player.is_eliminated = True
+        player.time_bank = 0
+        player.hunt_start_time = None
+        return True
 
     def remove_player(self, username):
         """Take a player out of the lobby, or mark them gone from a game in progress."""

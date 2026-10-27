@@ -164,3 +164,41 @@ class AwayFromLobbyTests(TestCase):
         self.room.mark_away('Bob')
         self.room.remove_player('Alice')
         self.assertEqual(self.room.creator, 'Cara')
+
+
+class SocketCountTests(TestCase):
+    """A player is away only once their last page has disconnected."""
+
+    def setUp(self):
+        self.room = GameRoom('TAB', creator='Alice')
+        self.room.add_player('Alice')
+
+    def test_closing_one_of_two_tabs_keeps_the_player_here(self):
+        self.room.socket_opened('Alice', 'tab-1')
+        self.room.socket_opened('Alice', 'tab-2')
+        self.assertIsNone(self.room.socket_closed('Alice', 'tab-1'))
+        self.assertTrue(self.room.players['Alice'].is_connected)
+
+    def test_closing_the_last_socket_marks_the_player_away(self):
+        self.room.socket_opened('Alice', 'tab-1')
+        self.assertIsNotNone(self.room.socket_closed('Alice', 'tab-1'))
+        self.assertFalse(self.room.players['Alice'].is_connected)
+
+    def test_a_socket_from_before_play_again_changes_nothing(self):
+        self.room.socket_opened('Alice', 'new-lobby-page')
+        self.assertIsNone(self.room.socket_closed('Alice', 'old-game-page'))
+        self.assertTrue(self.room.players['Alice'].is_connected)
+
+
+class DropPlayerTests(TestCase):
+    def test_a_dropped_player_is_out_with_no_time_and_ranks_last(self):
+        room = GameRoom('DRP', creator='Alice')
+        for name in ('Alice', 'Bob', 'Cara'):
+            room.add_player(name)
+        room.start_game()
+        room.players['Alice'].time_bank = 20
+        room.players['Cara'].time_bank = 60
+        self.assertTrue(room.drop_player('Cara'))
+        self.assertTrue(room.players['Cara'].is_eliminated)
+        self.assertEqual(room.get_leaderboard()[-1]['username'], 'Cara')
+        self.assertFalse(room.drop_player('Cara'))  # already out
