@@ -72,31 +72,41 @@
 
     let ws = null;
     let reconnectAttempts = 0;
+    let reconnectTimer = null;
     let intentionalDisconnect = false;
     const MAX_RECONNECT = 10;
+    const CLOSE_CANNOT_JOIN = 4004;  // consumers.py: the room can't take this socket, so don't retry
 
     function connect() {
-        ws = new WebSocket(wsUrl);
+        clearTimeout(reconnectTimer);
+        const socket = new WebSocket(wsUrl);
+        ws = socket;
 
-        ws.onopen = () => {
+        socket.onopen = () => {
             console.log('Lobby WS connected');
             reconnectAttempts = 0;
         };
 
-        ws.onclose = (e) => {
+        socket.onclose = (e) => {
             console.log('Lobby WS closed:', e.code);
+            if (socket !== ws) return;  // an older socket that was already replaced
+            if (e.code === CLOSE_CANNOT_JOIN) {
+                // The room is gone, full or already playing: the join page says which.
+                window.location.href = `/join/${ROOM_CODE}/`;
+                return;
+            }
             if (!intentionalDisconnect && reconnectAttempts < MAX_RECONNECT) {
                 const delay = Math.min(1000 * Math.pow(2, reconnectAttempts), 10000);
                 reconnectAttempts++;
-                setTimeout(connect, delay);
+                reconnectTimer = setTimeout(connect, delay);
             }
         };
 
-        ws.onerror = (e) => {
+        socket.onerror = (e) => {
             console.error('Lobby WS error:', e);
         };
 
-        ws.onmessage = (event) => {
+        socket.onmessage = (event) => {
             const data = JSON.parse(event.data);
             handleMessage(data);
         };
@@ -166,6 +176,8 @@
         const listEl = document.getElementById('player-list');
         const countEl = document.getElementById('player-count');
         const isHostNow = (USERNAME === creator);
+        // Players who are away sit the game out, so only those here count towards starting.
+        const here = players.filter(p => p.is_connected).length;
 
         countEl.textContent = `(${players.length}/10)`;
 
@@ -176,12 +188,13 @@
             const isYou = player.username === USERNAME;
 
             const item = document.createElement('div');
-            item.className = 'player-item';
+            item.className = player.is_connected ? 'player-item' : 'player-item is-away';
             item.style.animationDelay = `${index * 0.1}s`;
 
             let badges = '';
             if (isHost) badges += '<span class="player-badge badge-host">Host</span>';
             if (isYou) badges += '<span class="player-badge badge-you">You</span>';
+            if (!player.is_connected) badges += '<span class="player-badge badge-away">Away</span>';
 
             item.innerHTML = `
                 <div class="player-avatar" style="background: ${avatar.color}">${avatar.emoji}</div>
@@ -203,9 +216,9 @@
             const startBtn = document.getElementById('btn-start');
             const noteEl = document.getElementById('btn-start-note');
             if (startBtn && noteEl) {
-                if (players.length >= 2) {
+                if (here >= 2) {
                     startBtn.disabled = false;
-                    noteEl.textContent = `${players.length} players ready!`;
+                    noteEl.textContent = `${here} players ready!`;
                 } else {
                     startBtn.disabled = true;
                     noteEl.textContent = 'Need at least 2 players';
@@ -273,22 +286,23 @@
         }
     });
 
-    // Handle explicit leave and mobile backgrounding
+    // Leave gives the seat up at once; a socket that just drops keeps it for two minutes.
     const btnExitLobby = document.querySelector('.btn-exit-lobby');
     if (btnExitLobby) {
         btnExitLobby.addEventListener('click', () => {
             intentionalDisconnect = true;
+            if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'leave' }));
             if (ws) ws.close();
         });
     }
 
+    // Hiding the page (sharing the code in another app, a locked phone) keeps the socket open.
+    // If the phone drops it anyway, the server holds the seat, and coming back reconnects at once.
     document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'hidden') {
-            intentionalDisconnect = true;
-            if (ws) ws.close();
-        } else {
+        if (document.visibilityState === 'visible') {
             intentionalDisconnect = false;
             if (!ws || ws.readyState === WebSocket.CLOSED) {
+                reconnectAttempts = 0;
                 connect();
             }
         }

@@ -170,11 +170,11 @@ def consumer_for(room):
 
 
 def no_background(coro):
-    """Stand-in for asyncio.ensure_future: don't start follow-on timers in a test."""
+    """Stand-in for consumers.spawn: don't start follow-on timers in a test."""
     coro.close()
 
 
-@mock.patch('game.consumers.asyncio.ensure_future', no_background)
+@mock.patch('game.consumers.spawn', no_background)
 @mock.patch('game.consumers.asyncio.sleep', mock.AsyncMock())
 class RoboPlaysTests(TestCase):
     def setUp(self):

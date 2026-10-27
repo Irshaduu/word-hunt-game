@@ -1,5 +1,7 @@
 # Word Hunt 🎯
 
+[![Tests](https://github.com/Irshaduu/word-hunt-game/actions/workflows/tests.yml/badge.svg)](https://github.com/Irshaduu/word-hunt-game/actions/workflows/tests.yml)
+
 A real-time, multiplayer word-finding game built with **Django** and **WebSockets**. Designed for quick, low-friction multiplayer sessions during voice calls and casual gatherings, the project prioritizes a "zero-friction" user experience: offering instant home-screen installation via PWA, utilizing lightweight PIN authentication, and featuring 3-letter room codes for verbal sharing.
 
 > 🌐 **Play now:** [word-hunt-game.onrender.com](https://word-hunt-game.onrender.com) (Free — hosted on Render)
@@ -67,6 +69,8 @@ The system comfortably supports the intended usage pattern of friends, family, a
 ## Architecture Overview 🏗️
 
 > **Detailed Design Document:** Please read [ARCHITECTURE.md](ARCHITECTURE.md) for a deep dive into the $0 infrastructure constraints, the single-instance state management strategy, and DevOps workarounds.
+>
+> **What's next:** [ROADMAP.md](ROADMAP.md) plans Google sign-in, friends, invites and voice chat, phase by phase, inside the same $0 budget.
 
 
 ```

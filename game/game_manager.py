@@ -58,6 +58,7 @@ class PlayerState:
         self.found_current_word = False
         self.hunt_start_time = None  # server timestamp when hunt started for this player
         self.is_connected = True
+        self.away_since = None       # when their lobby socket dropped; None while they're here
 
     def to_dict(self):
         # Calculate effective time bank (subtract elapsed hunt time if active)
@@ -137,8 +138,10 @@ class GameRoom:
         if len(self.players) >= 10:
             return False, "Room is full (max 10 players)"
         if username in self.players:
-            # Reconnecting player
-            self.players[username].is_connected = True
+            # Reconnecting player: back in the same seat
+            player = self.players[username]
+            player.is_connected = True
+            player.away_since = None
             return True, None
         if self.state != LOBBY:
             return False, "Game already in progress"
@@ -147,18 +150,33 @@ class GameRoom:
         self.player_order.append(username)
         return True, None
 
+    def mark_away(self, username):
+        """A lobby socket dropped (another app, a locked phone): the player keeps their seat for now.
+
+        Returns when they went away, which names this absence for the grace timer in consumers.py.
+        """
+        self.update_activity()
+        player = self.players.get(username)
+        if player is None:
+            return None
+        player.is_connected = False
+        player.away_since = time.time()
+        return player.away_since
+
     def remove_player(self, username):
-        """Handle player disconnect."""
+        """Take a player out of the lobby, or mark them gone from a game in progress."""
         self.update_activity()
         if username in self.players:
             if self.state == LOBBY:
                 del self.players[username]
                 if username in self.player_order:
                     self.player_order.remove(username)
-                
-                # If host leaves, assign to the next person who joined (never Robo)
+
+                # If host leaves, hand it to the next person who joined and is here, else to anyone (never Robo)
                 if username == self.creator:
-                    self.creator = next((u for u in self.player_order if not self.is_bot(u)), None)
+                    people = [u for u in self.player_order if not self.is_bot(u)]
+                    here = [u for u in people if self.players[u].is_connected]
+                    self.creator = (here or people or [None])[0]
             else:
                 self.players[username].is_connected = False
 
@@ -173,8 +191,13 @@ class GameRoom:
     def start_game(self):
         """Initialize the game — randomize turns, generate board."""
         self.update_activity()
-        if len(self.players) < 2:
+        # Whoever is away from the lobby when the game starts sits this one out,
+        # so no round ever waits on an empty seat.
+        here = [u for u, p in self.players.items() if p.is_connected]
+        if len(here) < 2:
             return False, "Need at least 2 players"
+        for username in [u for u in self.players if u not in here]:
+            self.remove_player(username)
 
         # Randomize turn order
         self.turn_order = list(self.players.keys())

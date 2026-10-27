@@ -753,6 +753,19 @@ html, body {
     border: 1px solid rgba(103, 232, 249, 0.3);
 }
 
+/* A player whose lobby socket dropped (another app, a locked phone): seat kept for two minutes */
+.badge-away {
+    background: rgba(148, 163, 184, 0.15);
+    color: var(--text-muted);
+    border: 1px solid rgba(148, 163, 184, 0.3);
+}
+
+/* The row itself animates its opacity (slideIn), so dim what's inside it; the badge stays readable */
+.player-item.is-away .player-avatar,
+.player-item.is-away .player-name {
+    opacity: 0.5;
+}
+
 .player-placeholder {
     text-align: center;
     color: var(--text-muted);

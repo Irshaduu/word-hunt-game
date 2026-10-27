@@ -122,3 +122,45 @@ class StaleRoomCleanupTests(TestCase):
         ROOMS['EEE'] = room
         cleanup_stale_rooms()
         self.assertNotIn('EEE', ROOMS)
+
+
+class AwayFromLobbyTests(TestCase):
+    """A dropped lobby socket (another app, a locked phone) keeps the seat until the game starts."""
+
+    def setUp(self):
+        self.room = GameRoom('AWY', creator='Alice')
+        for name in ('Alice', 'Bob', 'Cara'):
+            self.room.add_player(name)
+
+    def test_away_player_keeps_their_seat_and_host(self):
+        self.room.mark_away('Alice')
+        self.assertIn('Alice', self.room.players)
+        self.assertEqual(self.room.creator, 'Alice')
+        self.assertFalse(self.room.players['Alice'].is_connected)
+
+    def test_coming_back_clears_away_and_keeps_the_place(self):
+        self.room.mark_away('Bob')
+        self.room.add_player('Bob')
+        self.assertTrue(self.room.players['Bob'].is_connected)
+        self.assertIsNone(self.room.players['Bob'].away_since)
+        self.assertEqual([p['username'] for p in self.room.get_player_list()], ['Alice', 'Bob', 'Cara'])
+
+    def test_the_game_starts_with_whoever_is_here(self):
+        self.room.mark_away('Cara')
+        ok, _ = self.room.start_game()
+        self.assertTrue(ok)
+        self.assertNotIn('Cara', self.room.players)
+        self.assertEqual(sorted(self.room.turn_order), ['Alice', 'Bob'])
+
+    def test_starting_needs_two_players_here_and_drops_nobody_if_it_cant(self):
+        self.room.mark_away('Bob')
+        self.room.mark_away('Cara')
+        ok, err = self.room.start_game()
+        self.assertFalse(ok)
+        self.assertEqual(self.room.state, LOBBY)
+        self.assertEqual(len(self.room.players), 3)
+
+    def test_host_passes_to_someone_who_is_here(self):
+        self.room.mark_away('Bob')
+        self.room.remove_player('Alice')
+        self.assertEqual(self.room.creator, 'Cara')

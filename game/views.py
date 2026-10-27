@@ -21,6 +21,11 @@ from .game_manager import ROOMS, GameRoom, generate_room_code, BOT_NAME
 GUEST_LIFETIME = timedelta(days=1)
 DEMO_LIMIT_PER_HOUR = 10  # per address, so nobody can mint accounts in a loop
 
+# Wrong PINs and new accounts, per address: a 4-character PIN is quick to guess,
+# and every try costs a password hash on a 0.1-CPU server.
+LOGIN_FAILS_PER_15_MIN = 10
+SIGNUPS_PER_HOUR = 10
+
 def landing(request):
     """Landing page — username entry + create/join room."""
     context = {}
@@ -68,6 +73,10 @@ def register_view(request):
         username = request.POST.get('username', '').strip().capitalize()
         pin = request.POST.get('pin', '').strip()
 
+        if _too_many(request, 'register', SIGNUPS_PER_HOUR):
+            request.session['error'] = 'Too many new accounts from here. Try again in an hour.'
+            return redirect('landing')
+
         if not username or len(username) > 10:
             request.session['error'] = 'Username must be 1-10 characters'
             return redirect('landing')
@@ -81,6 +90,7 @@ def register_view(request):
             return redirect('landing')
 
         user = User.objects.create_user(username=username, password=pin)
+        _count(request, 'register', 60 * 60)
         login(request, user)
         # Set session to not expire on browser close (stay logged in)
         request.session.set_expiry(60 * 60 * 24 * 365) # 1 year
@@ -93,12 +103,17 @@ def login_view(request):
         username = request.POST.get('username', '').strip().capitalize()
         pin = request.POST.get('pin', '').strip()
 
+        if _too_many(request, 'login', LOGIN_FAILS_PER_15_MIN):
+            request.session['error'] = 'Too many wrong PINs. Try again in 15 minutes.'
+            return redirect('landing')
+
         user = authenticate(request, username=username, password=pin)
         if user is not None:
             login(request, user)
             request.session.set_expiry(60 * 60 * 24 * 365) # 1 year
             return redirect('landing')
         else:
+            _count(request, 'login', 15 * 60)
             request.session['error'] = 'Invalid username or PIN'
             return redirect('landing')
     return redirect('landing')
@@ -113,6 +128,16 @@ def _client_ip(request):
     # Behind the host's proxy the socket address is the proxy's; the first forwarded one is the visitor.
     forwarded = request.META.get('HTTP_X_FORWARDED_FOR', '')
     return forwarded.split(',')[0].strip() or request.META.get('REMOTE_ADDR', '')
+
+
+def _too_many(request, action, limit):
+    """Has this address done `action` `limit` times inside its current window?"""
+    return cache.get(f'{action}:{_client_ip(request)}', 0) >= limit
+
+
+def _count(request, action, seconds):
+    key = f'{action}:{_client_ip(request)}'
+    cache.set(key, cache.get(key, 0) + 1, seconds)
 
 
 def _new_guest():
@@ -137,12 +162,10 @@ def demo_view(request):
         return redirect('landing')
 
     if not request.user.is_authenticated:
-        key = f'demo:{_client_ip(request)}'
-        made = cache.get(key, 0)
-        if made >= DEMO_LIMIT_PER_HOUR:
+        if _too_many(request, 'demo', DEMO_LIMIT_PER_HOUR):
             request.session['error'] = 'Too many demo games from here. Try again in an hour.'
             return redirect('landing')
-        cache.set(key, made + 1, 60 * 60)
+        _count(request, 'demo', 60 * 60)
 
         # Yesterday's guests go before today's is made, so they never pile up.
         User.objects.filter(profile__is_guest=True, date_joined__lt=timezone.now() - GUEST_LIFETIME).delete()

@@ -6,13 +6,70 @@ GameConsumer — handles all in-game real-time communication.
 
 import json
 import asyncio
+import logging
 import random
 import time as time_mod
+from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
+from django.db import transaction
+from django.db.models import F
 from .game_manager import (
-    ROOMS, GameRoom, PICKING, SHOWING, HUNTING, ROUND_END, GAME_OVER,
+    ROOMS, GameRoom, LOBBY, PICKING, SHOWING, HUNTING, ROUND_END, GAME_OVER,
     bot_pick_delay, bot_find_delay,
 )
+from .models import PlayerProfile
+
+logger = logging.getLogger(__name__)
+
+# How long a lobby seat is kept after its socket drops (another app, a locked phone).
+LOBBY_GRACE_SECONDS = 120
+
+# Close code for "this socket can't join, don't retry": the room is gone, full or already
+# playing, or nobody is signed in. The page then opens /join/<code>/, which says which.
+CLOSE_CANNOT_JOIN = 4004
+
+# Places 1-5 of a finished game, as PlayerProfile counters.
+PLACE_FIELDS = ['first_places', 'second_places', 'third_places', 'fourth_places', 'fifth_places']
+
+# Timers and Robo's moves run as background tasks. The event loop keeps only a weak
+# reference to a task, so hold one until it ends, and log whatever kills it.
+_background_tasks = set()
+
+
+def spawn(coro):
+    task = asyncio.ensure_future(coro)
+    _background_tasks.add(task)
+    task.add_done_callback(_task_done)
+    return task
+
+
+def _task_done(task):
+    _background_tasks.discard(task)
+    if not task.cancelled() and task.exception() is not None:
+        logger.error('Background task failed', exc_info=task.exception())
+
+
+async def turn_away(consumer):
+    """Refuse a socket so its page stops retrying: accept, then close with CLOSE_CANNOT_JOIN."""
+    await consumer.accept()
+    await consumer.close(code=CLOSE_CANNOT_JOIN)
+
+
+@database_sync_to_async
+def save_results(leaderboard):
+    """Add a finished game to each player's stats.
+
+    One UPDATE per player that adds inside the database (F), so two saves can't overwrite each other.
+    """
+    with transaction.atomic():
+        for place, entry in enumerate(leaderboard):
+            changes = {}
+            if entry['time_bank'] > 0:
+                changes['total_earned_seconds'] = F('total_earned_seconds') + int(entry['time_bank'])
+            if place < len(PLACE_FIELDS):
+                changes[PLACE_FIELDS[place]] = F(PLACE_FIELDS[place]) + 1
+            if changes:
+                PlayerProfile.objects.filter(user__username=entry['username']).update(**changes)
 
 
 def get_username_from_scope(scope):
@@ -34,26 +91,68 @@ class LobbyConsumer(AsyncWebsocketConsumer):
         self.group_name = f'lobby_{self.room_code}'
         self.username = get_username_from_scope(self.scope)
 
-        if self.username is None:
-            await self.close()
+        room = ROOMS.get(self.room_code)
+        if self.username is None or room is None:
+            await turn_away(self)
             return
 
-        # Validate room exists
-        if self.room_code not in ROOMS:
-            await self.close()
-            return
-
-        room = ROOMS[self.room_code]
         success, error = room.add_player(self.username)
         if not success:
-            await self.close()
+            await turn_away(self)
             return
+        self.seated = True
 
         # Join channel group
         await self.channel_layer.group_add(self.group_name, self.channel_name)
         await self.accept()
 
-        # Broadcast updated player list
+        if room.state != LOBBY:
+            # Back after missing the start (their socket had dropped): straight on to the game.
+            await self.send(text_data=json.dumps({
+                'type': 'game_starting',
+                'turn_order': room.turn_order,
+            }))
+
+        await self.broadcast_players(room)
+
+    async def disconnect(self, close_code):
+        if not getattr(self, 'seated', False):
+            return  # turned away: never joined the room
+        await self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+        room = ROOMS.get(self.room_code)
+        if room is None or getattr(self, 'left', False):
+            return
+        if room.state != LOBBY:
+            # Off to the game page: marked gone until the game socket connects.
+            room.remove_player(self.username)
+            return
+
+        # Another app or a locked phone: the seat is kept for a while, shown as away.
+        away_since = room.mark_away(self.username)
+        spawn(self._free_seat_later(room, self.username, away_since))
+        await self.broadcast_players(room)
+
+    async def _free_seat_later(self, room, username, away_since):
+        """Give the seat up if its player hasn't come back from this absence within the grace."""
+        await asyncio.sleep(LOBBY_GRACE_SECONDS)
+        player = room.players.get(username)
+        # away_since names the absence: a player who came back (and maybe left again since) is not this one.
+        if (ROOMS.get(room.room_code) is not room or room.state != LOBBY
+                or player is None or player.away_since != away_since):
+            return
+        room.remove_player(username)
+        await self.after_leaving(room)
+
+    async def after_leaving(self, room):
+        """Someone gave their seat up: close the lobby once no person is left (Robo doesn't count)."""
+        if room.state == LOBBY and room.human_count() == 0:
+            if ROOMS.get(room.room_code) is room:
+                del ROOMS[room.room_code]
+            return
+        await self.broadcast_players(room)
+
+    async def broadcast_players(self, room):
         await self.channel_layer.group_send(
             self.group_name,
             {
@@ -63,30 +162,18 @@ class LobbyConsumer(AsyncWebsocketConsumer):
             }
         )
 
-    async def disconnect(self, close_code):
-        if hasattr(self, 'room_code') and self.room_code in ROOMS:
-            room = ROOMS[self.room_code]
-            room.remove_player(self.username)
-
-            # If no person is left in the lobby (Robo doesn't count), delete it to free memory
-            if room.state == 'lobby' and room.human_count() == 0:
-                del ROOMS[self.room_code]
-            else:
-                # Broadcast updated player list
-                await self.channel_layer.group_send(
-                    self.group_name,
-                    {
-                        'type': 'player_update',
-                        'players': room.get_player_list(),
-                        'creator': room.creator,
-                    }
-                )
-
-        await self.channel_layer.group_discard(self.group_name, self.channel_name)
-
     async def receive(self, text_data):
         data = json.loads(text_data)
         msg_type = data.get('type')
+
+        if msg_type == 'leave':
+            # The Leave button: give the seat up now, not after the grace.
+            room = ROOMS.get(self.room_code)
+            if room is not None:
+                self.left = True
+                room.remove_player(self.username)
+                await self.after_leaving(room)
+            return
 
         if msg_type == 'start_game':
             if self.room_code not in ROOMS:
@@ -141,12 +228,8 @@ class GameConsumer(AsyncWebsocketConsumer):
         self.group_name = f'game_{self.room_code}'
         self.username = get_username_from_scope(self.scope)
 
-        if self.username is None:
-            await self.close()
-            return
-
-        if self.room_code not in ROOMS:
-            await self.close()
+        if self.username is None or self.room_code not in ROOMS:
+            await turn_away(self)
             return
 
         room = ROOMS[self.room_code]
@@ -182,7 +265,7 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         if room.state == PICKING and not getattr(room, 'pick_timer_started', False):
             room.pick_timer_started = True
-            asyncio.ensure_future(self._auto_pick_timer(room, room.pick_start_time, room.current_picker))
+            spawn(self._auto_pick_timer(room, room.pick_start_time, room.current_picker))
             self._schedule_bot_pick(room)
 
     async def disconnect(self, close_code):
@@ -272,7 +355,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         )
 
         # Launch the countdown in the background so it doesn't block the picker's socket
-        asyncio.ensure_future(self._wait_and_start_hunt(room))
+        spawn(self._wait_and_start_hunt(room))
 
     async def _auto_pick_timer(self, room, pick_start_time, picker_username):
         await asyncio.sleep(20.0)
@@ -297,11 +380,11 @@ class GameConsumer(AsyncWebsocketConsumer):
                     'picker': picker_username,
                 }
             )
-            asyncio.ensure_future(self._wait_and_start_hunt(room))
+            spawn(self._wait_and_start_hunt(room))
 
     def _schedule_bot_pick(self, room):
         if room.is_bot(room.current_picker):
-            asyncio.ensure_future(self._bot_pick(room, room.pick_start_time))
+            spawn(self._bot_pick(room, room.pick_start_time))
 
     async def _bot_pick(self, room, pick_start_time):
         """Robo's turn: look at the board for a moment, then pick."""
@@ -333,10 +416,10 @@ class GameConsumer(AsyncWebsocketConsumer):
         )
 
         for bot_name in room.bot_hunters():
-            asyncio.ensure_future(self._bot_hunt(room, bot_name, room.pick_start_time))
+            spawn(self._bot_hunt(room, bot_name, room.pick_start_time))
 
         # Start a background task to monitor time-outs
-        asyncio.ensure_future(self.monitor_timers(room))
+        spawn(self.monitor_timers(room))
 
     async def monitor_timers(self, room):
         """Background task to check if any player's time bank runs out during a hunt."""
@@ -493,7 +576,7 @@ class GameConsumer(AsyncWebsocketConsumer):
         )
 
         room.pick_timer_started = True
-        asyncio.ensure_future(self._auto_pick_timer(room, room.pick_start_time, next_picker))
+        spawn(self._auto_pick_timer(room, room.pick_start_time, next_picker))
         self._schedule_bot_pick(room)
 
     async def broadcast_game_over(self, room, winner):
@@ -509,36 +592,11 @@ class GameConsumer(AsyncWebsocketConsumer):
 
         # Practice games against Robo never touch the global leaderboard.
         if winner and winner in room.players and not room.practice:
-            # Update stats in DB
-            from channels.db import database_sync_to_async
-            from django.contrib.auth.models import User
-            
-            @database_sync_to_async
-            def update_leaderboard_stats(leaderboard_data):
-                for idx, entry in enumerate(leaderboard_data):
-                    try:
-                        user = User.objects.get(username=entry['username'])
-                        
-                        # Add any remaining time (only winner will likely have time left)
-                        if entry['time_bank'] > 0:
-                            user.profile.total_earned_seconds += int(entry['time_bank'])
-
-                        if idx == 0:
-                            user.profile.first_places += 1
-                        elif idx == 1:
-                            user.profile.second_places += 1
-                        elif idx == 2:
-                            user.profile.third_places += 1
-                        elif idx == 3:
-                            user.profile.fourth_places += 1
-                        elif idx == 4:
-                            user.profile.fifth_places += 1
-                        
-                        user.profile.save()
-                    except Exception:
-                        pass
-            
-            await update_leaderboard_stats(room.get_leaderboard())
+            try:
+                await save_results(room.get_leaderboard())
+            except Exception:
+                # The game still ends for everyone; the log says whose results were lost.
+                logger.exception('Could not save the results of room %s', room.room_code)
 
         await self.channel_layer.group_send(
             self.group_name,
