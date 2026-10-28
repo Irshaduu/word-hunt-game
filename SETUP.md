@@ -49,6 +49,20 @@ can't, and Cloudflare's TURN relays their sound (1,000 GB a month free).
 
 The token stays on the server: browsers only ever get credentials that expire in four hours.
 
+## 4. Voice in rooms (Phase 6, about 5 minutes)
+
+Voice rooms work without this, with text chat only. For voice, they use Cloudflare's Realtime
+SFU, which shares the 1,000 GB a month with TURN.
+
+1. [Cloudflare dashboard](https://dash.cloudflare.com/) → **Realtime → Serverless SFU**, and create an app.
+2. Copy its **App ID** and **App Secret**.
+3. Render → Environment: add `CLOUDFLARE_SFU_APP_ID` and `CLOUDFLARE_SFU_APP_SECRET`.
+4. Check: open a room. It shows **Join the voice chat** where it used to say voice isn't switched on yet.
+
+The secret stays on the server: the server makes every call to the SFU.
+
+**Reading reports.** People can report someone in a room. On your computer, set the same `DB_*` variables Render has, then run `python manage.py list_reports`.
+
 ## Optional: lock the Host header
 
 Render → Environment → `DJANGO_ALLOWED_HOSTS` = `word-hunt-game.onrender.com`

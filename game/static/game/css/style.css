@@ -1818,6 +1818,13 @@ html, body {
     background: rgba(255, 255, 255, 0.1);
 }
 
+/* An open menu can reach past the bottom of its card: lift that card over the cards below it,
+   or the next card covers the menu and takes its clicks. */
+.glass-card:has(.row-menu[open]) {
+    position: relative;
+    z-index: 5;
+}
+
 .friend-buttons {
     display: flex;
     align-items: center;
@@ -2046,4 +2053,79 @@ body.has-floating-voice .lobby-container {
     width: 22px;
     height: 22px;
     font-size: 0.7rem;
+}
+
+/* --- Voice rooms (voice/static/voice/room.js) --- */
+.room-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 12px 14px;
+    margin-top: 8px;
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+    text-decoration: none;
+}
+
+.room-row:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.room-row__name {
+    font-weight: 800;
+}
+
+.room-row__meta,
+.room-tag {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.room-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.room-lock {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.room-voice {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.room-chat {
+    height: 220px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    background: rgba(0, 0, 0, 0.2);
+    font-size: 0.9rem;
+}
+
+.chat-line {
+    padding: 3px 0;
+    overflow-wrap: anywhere;
+    color: var(--text-secondary);
+}
+
+.chat-line b {
+    color: var(--text-primary);
+}
+
+.room-chat-note {
+    margin: 10px 0 0;
 }

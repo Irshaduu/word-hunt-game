@@ -185,6 +185,12 @@
                 <span class="btn-text">Random match</span>
             </a>
 
+            <!-- Rooms of up to 8 to talk and chat (voice/rooms.py). -->
+            <a href="{% url 'voice_rooms' %}" class="btn btn-secondary random-btn" id="btn-rooms">
+                <span class="btn-icon"><i class="ph-duotone ph-microphone-stage" style="color: #34D399; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));"></i></span>
+                <span class="btn-text">Voice rooms</span>
+            </a>
+
             <!-- No one around? Robo plays a real game with you; nothing reaches the leaderboard. -->
             <a href="{% url 'practice_room' %}" class="btn btn-secondary practice-btn" id="btn-practice">
                 <span class="robo-face" aria-hidden="true"><i></i></span>

@@ -127,6 +127,11 @@ GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
 CLOUDFLARE_TURN_KEY_ID = os.environ.get('CLOUDFLARE_TURN_KEY_ID', '')
 CLOUDFLARE_TURN_API_TOKEN = os.environ.get('CLOUDFLARE_TURN_API_TOKEN', '')
 
+# Voice rooms (up to 8): Cloudflare Realtime SFU forwards each person's voice to the others.
+# Unset, voice rooms work as text chat.
+CLOUDFLARE_SFU_APP_ID = os.environ.get('CLOUDFLARE_SFU_APP_ID', '')
+CLOUDFLARE_SFU_APP_SECRET = os.environ.get('CLOUDFLARE_SFU_APP_SECRET', '')
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Logging. With DEBUG off, Django's default mails request errors to ADMINS, and there are

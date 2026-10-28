@@ -1,0 +1,44 @@
+{% extends "game/base.html" %}
+
+{% block title %}Voice rooms | Word Hunt{% endblock %}
+
+{% block content %}
+<div class="landing-bg">
+    <div class="page-container">
+        <a href="{% url 'landing' %}" class="btn-back"><i class="ph-bold ph-caret-left"></i> Home</a>
+
+        {% if guest %}
+        <div class="card glass-card">
+            <h1 class="card-title"><i class="ph-duotone ph-microphone-stage"></i> Voice rooms</h1>
+            <p class="form-note">Voice rooms are for players with a name. Sign out of the demo, then sign up with a name and PIN, or with Google.</p>
+            <a href="{% url 'logout' %}" class="btn btn-primary profile-signout"><span class="btn-text">Sign out of the demo</span></a>
+        </div>
+        {% else %}
+
+        <div class="card glass-card">
+            <h1 class="card-title"><i class="ph-duotone ph-microphone-stage"></i> Voice rooms</h1>
+            <p class="form-note">Rooms of up to {{ max_members }} to talk and chat. The owner can mute and remove people, and anyone can report or block.{% if not voice_ready %} Voice in rooms isn't switched on yet, so for now they're text chat.{% endif %}</p>
+            {% if error %}<div class="error-banner">{{ error }}</div>{% endif %}
+            <form method="post" class="add-friend-form">
+                {% csrf_token %}
+                <input type="text" name="name" class="text-input" placeholder="Name your room" maxlength="40" required aria-label="Room name">
+                <button type="submit" class="btn btn-accent"><span class="btn-text">Open</span></button>
+            </form>
+        </div>
+
+        <div class="card glass-card">
+            <h2 class="card-title"><i class="ph-duotone ph-users-three"></i> Open now</h2>
+            {% for room in rooms %}
+            <a class="room-row" href="{% url 'voice_room' room.id %}">
+                <span class="room-row__name">{{ room.name }}</span>
+                <span class="room-row__meta">{{ room.owner }} · {{ room.members|length }}/{{ max_members }}{% if room.locked %} · locked{% endif %}</span>
+            </a>
+            {% empty %}
+            <p class="empty-note">No rooms are open right now. Open one, and invite friends to it.</p>
+            {% endfor %}
+        </div>
+
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -101,5 +101,15 @@ Voice is WebRTC, peer to peer: the sound goes straight between browsers and neve
 - **Across pages.** Lobby and game are separate pages (Phase 1 decision), so `voice.js` remembers in `sessionStorage` that the player is in voice, and the next page rejoins without asking for the microphone again. On the server, the newer socket replaces the older one, and the older one's close can't take the player out.
 - **Safety.** No voice in random matches. People who blocked each other are never introduced, and their sockets pass nothing between them, even if a page tried.
 
+## 11. Voice Rooms
+
+Rooms of up to eight where people talk and type (`voice/rooms.py`, `/ws/rooms/<id>/`). In a mesh, each of eight phones would upload its voice seven times, so rooms use Cloudflare's Realtime SFU: each phone sends its voice once, and Cloudflare forwards it to the others.
+
+- **Django holds the SFU's secret** (`voice/sfu.py`). The page makes the WebRTC offer, and the server makes the calls: a new session, then the microphone published as one track; a pull of the others' tracks by session and track name; and a renegotiation when Cloudflare answers a pull with an offer of its own. The sound goes through Cloudflare, never Render (rule 1). The 1,000 GB a month is shared with TURN: about 800 hours of full rooms.
+- **In memory.** Rooms, members, chat and the owner's lists live in memory (rule 4), so a restart closes every room. Beyond signing in, Postgres is read when someone joins (are they a demo guest, and who are they blocked with?) and written for reports and blocks. Nothing on a timer touches it (rule 2).
+- **Moderation before listing.** The owner mutes, removes and locks. A mute is kept per room, so a reload doesn't undo it, and every listener's page silences that player too, so a page that ignored the mute still isn't heard. Anyone can report (kept with the room's name and the reason, for `manage.py list_reports`) or block. Blocks work both ways: neither person sees, hears or reads the other, and the SFU pull won't hand out their track.
+- **A reload isn't leaving.** An owner who leaves has 30 seconds to come back, then the room goes to whoever has been there longest, or closes if it's empty. Each of the owner's absences is numbered, so a timer from an earlier one can't act on a later one.
+- **Chat is passed along, never stored**: 300 characters, one message a second per socket. Each page keeps the last 200 lines.
+
 ---
 *By constraining the system to $0 and acknowledging the <200 user limit, these constraints led to custom state machines and a hybrid audio synthesis model, resulting in a lightweight and efficient MVP without introducing unnecessary infrastructure complexity.*

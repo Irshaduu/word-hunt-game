@@ -12,7 +12,7 @@ Written October 2026. Each phase ships on its own, so the game is finished at th
 | 3. Friends | Friend requests, friends list, who's online | Done |
 | 4. Play together | Invite a friend; random matches, with Robo as the fallback | Done |
 | 5. Voice in games | Talk to up to 3 others during a game | Done; try on two phones |
-| 6. Voice rooms | Rooms where up to 8 people talk | |
+| 6. Voice rooms | Rooms where up to 8 people talk | Done; needs Cloudflare SFU keys |
 
 ## The $0 budget
 
@@ -139,12 +139,22 @@ Done when: two phones on different mobile networks talk through a whole game. Ch
 
 ## Phase 6 — Voice rooms (up to 8)
 
-- Cloudflare Realtime SFU: each person sends one audio stream and receives the others'. Django creates the sessions and hands out the tracks.
-- Moderation tools come first: the owner can mute, kick and lock, and everyone can report and block. Rooms are listed publicly only once these exist.
-- Room text chat is either not stored, or kept for 7 days at most (Postgres has 1 GB).
-- Budget: a full 8-person room uses roughly 1–1.3 GB an hour, so about 800 room-hours a month fit in the free allowance. For comparison, LiveKit Cloud's free plan covers about 10 hours of full rooms.
+Decided while building it:
 
-Done when: 8 people talk in a room for an hour, and the owner can mute and kick.
+- **Rooms live in memory** (rule 4), like game rooms: a restart closes them. Only reports go to Postgres.
+- **Room chat isn't stored.** The server passes each message along and forgets it.
+- **Demo guests can't use rooms.** Strangers need a real name someone can report.
+- **A reload isn't leaving.** An owner who leaves has 30 seconds to come back. After that the room goes to whoever has been there longest, or closes if it's empty.
+
+Done:
+
+- [x] **Rooms** (`voice/rooms.py`): a public list, busiest first, at **Voice rooms** on the home page. A room has a name (or "Asha's room") and holds 8. Each player can open 5 rooms an hour. Its socket, `/ws/rooms/<id>/`, carries who is in it, the chat, and the owner's tools.
+- [x] **Voice through Cloudflare's Realtime SFU** (`voice/sfu.py`). Each person sends their voice once and receives the others'. Django makes every SFU call (publish, pull, renegotiate), so the app secret never reaches a page, and a pull only brings in people the player may hear. Without the keys, rooms work with text chat only.
+- [x] **Moderation came first.** The owner can mute (it holds through a reload, and every page silences that player too), remove (they can't come back) and lock (the owner still gets in). Anyone can report (kept, 5 an hour per player; read them with `python manage.py list_reports`) or block. People blocked with each other, either way, don't see, hear or read each other in a room. Nobody joins a room whose owner they're blocked with.
+- [x] **Chat**: up to 300 characters, one message a second.
+- Budget: a full 8-person room uses roughly 1–1.3 GB an hour of Cloudflare's 1,000 GB, so about 800 room-hours a month fit. Render only carries a room's small messages: who is in it, chat lines, and the SFU offers and answers.
+
+Done when: 8 people talk in a room for an hour, and the owner can mute and kick. Checked in the browser with two players: the room listed and joined, chat both ways, mute (still on after a reload), remove (told, sent back, can't return), lock, and the owner's reload keeping the room. The check found three bugs, now fixed: the chat box covered the member menu, a reload undid a mute, and a reload cost the owner the room. Voice through the SFU needs the Cloudflare keys and real people: 8 people for an hour is still to do.
 
 ## How each phase is built
 

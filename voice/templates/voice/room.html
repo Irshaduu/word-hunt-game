@@ -1,0 +1,47 @@
+{% extends "game/base.html" %}
+{% load static %}
+
+{% block title %}{{ room.name }} | Word Hunt{% endblock %}
+
+{% block content %}
+<div class="landing-bg">
+    <div class="page-container">
+        <a href="{% url 'voice_rooms' %}" class="btn-back"><i class="ph-bold ph-caret-left"></i> Rooms</a>
+
+        <div class="card glass-card">
+            <div class="room-head">
+                <h1 class="card-title">{{ room.name }}</h1>
+                <label class="room-lock" id="room-lock" hidden><input type="checkbox" id="room-lock-box"> Locked</label>
+            </div>
+            <div class="room-voice">
+                {% if voice_ready %}
+                <button type="button" class="btn btn-primary" id="voice-start"><span class="btn-text"><i class="ph-duotone ph-microphone"></i> Join the voice chat</span></button>
+                <button type="button" class="btn-small" id="voice-mute" hidden>Mute</button>
+                <button type="button" class="btn-small" id="voice-stop" hidden>Leave the voice chat</button>
+                <span class="voice-note" id="voice-note" role="status"></span>
+                {% else %}
+                <p class="form-note">Voice in rooms isn't switched on yet. Text chat works.</p>
+                {% endif %}
+            </div>
+            <div class="room-members" id="room-members" aria-live="polite"></div>
+        </div>
+
+        <div class="card glass-card">
+            <h2 class="card-title"><i class="ph-duotone ph-chats"></i> Chat</h2>
+            <div class="room-chat" id="chat-lines" aria-live="polite"></div>
+            <form class="add-friend-form" id="chat-form" autocomplete="off">
+                <input type="text" class="text-input" id="chat-input" maxlength="300" placeholder="Say something" aria-label="Message">
+                <button type="submit" class="btn btn-accent"><span class="btn-text">Send</span></button>
+            </form>
+            <p class="form-note room-chat-note">Chat isn't stored: it's gone once you leave.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.ROOM_ID = '{{ room.id|escapejs }}';
+    window.ROOM_ME = '{{ request.user.username|escapejs }}';
+    window.CSRF_TOKEN = '{{ csrf_token }}';
+</script>
+<script src="{% static 'voice/room.js' %}?v=2" defer></script>
+{% endblock %}
