@@ -2025,3 +2025,25 @@ html, body {
     font-size: 0.75rem;
     color: var(--text-muted);
 }
+
+/* The floating voice bar never covers the end of the page: it can scroll above it */
+body.has-floating-voice .lobby-container {
+    padding-bottom: 88px;
+}
+
+/* In the game header the bar shares a row with the room code and Exit: smaller chips, and the
+   strip of people gives way (clips) before Exit could be pushed off a narrow screen. */
+#voice-slot {
+    min-width: 0;
+}
+
+#voice-slot .voice-people {
+    overflow: hidden;
+}
+
+#voice-slot .voice-chip {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    font-size: 0.7rem;
+}

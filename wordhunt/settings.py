@@ -140,5 +140,7 @@ LOGGING = {
     'loggers': {
         'django.request': {'handlers': ['console'], 'level': 'ERROR', 'propagate': False},
         'game': {'handlers': ['console'], 'level': 'INFO'},
+        'social': {'handlers': ['console'], 'level': 'INFO'},
+        'voice': {'handlers': ['console'], 'level': 'INFO'},
     },
 }

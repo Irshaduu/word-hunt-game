@@ -11,7 +11,7 @@ Written October 2026. Each phase ships on its own, so the game is finished at th
 | 2. Google sign-in | Sign in with Google, real profiles, match history | Done; needs a Google client ID |
 | 3. Friends | Friend requests, friends list, who's online | Done |
 | 4. Play together | Invite a friend; random matches, with Robo as the fallback | Done |
-| 5. Voice in games | Talk to up to 3 others during a game | Code in; needs tests and a two-phone check |
+| 5. Voice in games | Talk to up to 3 others during a game | Done; try on two phones |
 | 6. Voice rooms | Rooms where up to 8 people talk | |
 
 ## The $0 budget
@@ -121,13 +121,21 @@ Done when: a friend is in your room two taps after you open the friends list, an
 
 ## Phase 5 — Voice in games
 
-- WebRTC, peer to peer, in rooms of up to 4. More than that would mean each phone uploads its voice once for every other player. Signalling (offer, answer, ICE candidates) goes over the room socket.
-- STUN from Google's public servers. TURN from Cloudflare, with short-lived credentials that Django creates per user, so the Cloudflare key never reaches a browser. Some players on mobile data can't connect directly, and TURN relays them.
-- The microphone is off by default and only asked for when the player taps it. Mute, push-to-talk, and a ring on the avatar of whoever is speaking.
-- Voice is friends-only by default. Random matches stay text-only.
-- Budget: a relayed one-to-one call uses about 45 MB an hour of Cloudflare's 1,000 GB. Render carries only a few KB of signalling.
+Decided while building it:
 
-Done when: two phones on different mobile networks talk through a whole game.
+- **Signalling has its own socket**, `/ws/voice/<room>/`, so the game's sockets stay as they were and voice can be off without touching them.
+- **No push-to-talk yet.** Mute is one tap, and phones' echo cancellation and noise suppression are on.
+- **"Friends-only" means rooms people join by code or invite.** Random matches have no voice at all.
+
+Done:
+
+- [x] **WebRTC, peer to peer, up to 4 in a room** (`voice/consumers.py`). The server introduces players, and passes each pair's offer, answer and network candidates only to the player they're for. The newcomer calls everyone already talking. If a path fails after a network change, the same side always calls again. A fifth player is told voice is full.
+- [x] **STUN from Google and Cloudflare. TURN from Cloudflare**, with credentials made on the server (`voice/ice.py`): four hours long, fetched once an hour, port 53 dropped. Credentials go only to players in a room with voice, so nobody can fetch them to relay anything else. Without the keys, voice uses STUN alone.
+- [x] **The microphone is only asked for when the player taps Voice.** Mute (the others see it), a speaking ring on each person's chip, and Leave. The bar floats at the bottom of the lobby and sits in the game header, where it never covers the board.
+- [x] **Voice follows the player from the lobby to the game and back.** The next page rejoins by itself; the newer socket replaces the old one, and the old one closing can't take the player out.
+- [x] **People who blocked each other are never introduced**, and the server passes nothing between them.
+
+Done when: two phones on different mobile networks talk through a whole game. Checked with two browser tabs, using a test tone in place of a microphone (the in-app browser blocks real ones): connected both ways, about 23 KB of audio each way in the lobby and again from the game header, and mute showed on the other side. Two real phones on mobile data still need trying once it's deployed with the TURN keys.
 
 ## Phase 6 — Voice rooms (up to 8)
 

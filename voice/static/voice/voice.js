@@ -32,7 +32,10 @@
     const bar = document.createElement('div');
     bar.className = 'voice-bar';
     const slot = document.getElementById('voice-slot');
-    if (!slot) bar.classList.add('voice-bar--floating');
+    if (!slot) {
+        bar.classList.add('voice-bar--floating');
+        document.body.classList.add('has-floating-voice');  // room below the page for the bar
+    }
     (slot || document.body).appendChild(bar);
 
     function chip(name, isMuted) {

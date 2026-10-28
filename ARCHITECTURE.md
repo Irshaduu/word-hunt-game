@@ -91,5 +91,15 @@ Friendships are rows people own, so they live in Postgres (`social/models.py`, r
 - **Matching:** at 4 waiting it matches at once; at 2 or 3 it waits 4 seconds for more. Groups skip pairs who blocked each other, which is read once per match.
 - **A random match's room knows who it's for** (`GameRoom.expected`). The lobby socket starts the game when the last of them arrives. A timer started with the room starts it with whoever came after 20 seconds, or closes it and sends a lone player back to the queue. Play Again turns it into an ordinary host-started room. `matchmade` stays set, so strangers never get voice chat (Phase 5).
 
+## 10. Voice in Game Rooms
+
+Voice is WebRTC, peer to peer: the sound goes straight between browsers and never through Render (rule 1 in [ROADMAP.md](ROADMAP.md)).
+
+- **The server only introduces.** `/ws/voice/<room>/` (`voice/consumers.py`) keeps, in memory, who is in each room's voice chat. It passes each pair's offer, answer and ICE candidates only to the player they're addressed to: a few KB per pair. The newcomer calls everyone already talking, so two players never call each other at once.
+- **Up to four.** In a mesh, each phone uploads its voice once per listener, so a fifth is turned away. Bigger rooms use an SFU (section 11).
+- **ICE servers** (`voice/ice.py`): STUN finds a direct path for most pairs. For networks that won't allow one, many mobile carriers among them, Cloudflare's TURN relays the sound. Its credentials are made server-side (the API token never reaches a browser), last four hours, are fetched once an hour, and go only to players in a room with voice.
+- **Across pages.** Lobby and game are separate pages (Phase 1 decision), so `voice.js` remembers in `sessionStorage` that the player is in voice, and the next page rejoins without asking for the microphone again. On the server, the newer socket replaces the older one, and the older one's close can't take the player out.
+- **Safety.** No voice in random matches. People who blocked each other are never introduced, and their sockets pass nothing between them, even if a page tried.
+
 ---
 *By constraining the system to $0 and acknowledging the <200 user limit, these constraints led to custom state machines and a hybrid audio synthesis model, resulting in a lightweight and efficient MVP without introducing unnecessary infrastructure complexity.*
