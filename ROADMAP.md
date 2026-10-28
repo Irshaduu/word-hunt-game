@@ -14,6 +14,14 @@ Written October 2026. Each phase ships on its own, so the game is finished at th
 | 5. Voice in games | Talk to up to 3 others during a game | Done; try on two phones |
 | 6. Voice rooms | Rooms where up to 8 people talk | Done; needs Cloudflare SFU keys |
 
+## Where it stands (28 October 2026)
+
+- Phases 1–6 are built on the branch `phases-1-to-6`, pushed to GitHub and not merged. `main`, which Render runs, has Phase 0 only.
+- To ship them: the steps in [SETUP.md](SETUP.md). Each feature stays hidden or falls back until its key is in, so merging before adding keys is safe.
+- Cloudflare Realtime (the voice relay and the voice-room server) asks for a card or PayPal before it turns on, even for the free 1,000 GB. Without it, voice in games still connects directly on most networks, and voice rooms are text only. A no-card option for the relay is not built yet: Metered's free Open Relay (20 GB a month, ports 80 and 443), used by `voice/ice.py` when its key is set.
+- Still to try for real: voice on two phones over mobile data, voice rooms through the SFU, and 8 people in a room for an hour.
+- Later: give far-away players back half their round trip when they find a word (Phase 4).
+
 ## The $0 budget
 
 Every phase has to fit these free tiers (checked October 2026):

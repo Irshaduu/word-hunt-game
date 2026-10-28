@@ -15,6 +15,11 @@ A real-time, multiplayer word-finding game built with **Django** and **WebSocket
 - **Modern UI:** A vibrant, glassmorphism design with a deep-space arena, neon floating banners, gradient accents, and smooth micro-animations. Fully optimized for mobile, tablet, and desktop.
 - **Reconnection Handling:** Players are soft-disconnected on connection loss, allowing safe browser refreshes without being kicked from the game. Clients reconnect with exponential backoff and receive a full state sync.
 - **Authentication:** Username + 4-character PIN registration system with persistent player profiles. WebSockets act as the signed-in user from the session cookie (`AuthMiddlewareStack`), never as a name in the URL.
+- **Sign in with Google:** One tap, next to the PIN accounts, and profiles with match history.
+- **Friends:** Friend requests, blocks, and who is online, live on every page.
+- **Play Together:** Invite an online friend into your room, or take a random match; Robo fills in when nobody else is around.
+- **Voice in Games:** Up to 4 players talk during a game, browser to browser (WebRTC), with Cloudflare's relay for networks that block direct calls.
+- **Voice Rooms:** Rooms of up to 8 with text chat, an owner who can mute, remove and lock, and report and block for everyone. Voice goes through Cloudflare's SFU.
 - **One-tap Demo:** "Try the demo" on the landing page signs in a throwaway guest (no PIN, so nobody can sign in to it again) and opens a practice game. Guests stay off the global leaderboard, are deleted after a day, and each address can make 10 an hour.
 - **Practice with Robo 🤖:** A practice room seats Robo, a server-side player that picks a word on its turn and finds yours after 5–14 seconds, so one person can play a real game. Practice games never touch the leaderboard.
 - **Player Profiles & Stats:** Tracks total earned seconds, 1st–5th place finishes, and global rank across all games.
@@ -70,7 +75,7 @@ The system comfortably supports the intended usage pattern of friends, family, a
 
 > **Detailed Design Document:** Please read [ARCHITECTURE.md](ARCHITECTURE.md) for a deep dive into the $0 infrastructure constraints, the single-instance state management strategy, and DevOps workarounds.
 >
-> **What's next:** [ROADMAP.md](ROADMAP.md) plans Google sign-in, friends, invites and voice chat, phase by phase, inside the same $0 budget.
+> **Roadmap:** [ROADMAP.md](ROADMAP.md) has each phase (Google sign-in, friends, invites, voice), its status, and where the work stands. [SETUP.md](SETUP.md) lists the keys and settings each one needs.
 
 
 ```
@@ -162,5 +167,7 @@ Client (Browser)                    Server (Render)
    | `DB_PASSWORD` | Your Neon database password |
    | `DB_HOST` | Your Neon host (e.g. `ep-xxx.aws.neon.tech`) |
    | `DB_PORT` | `5432` |
+
+   Optional, each one turns a feature on (see [SETUP.md](SETUP.md)): `GOOGLE_CLIENT_ID`, `CLOUDFLARE_TURN_KEY_ID` and `CLOUDFLARE_TURN_API_TOKEN`, `CLOUDFLARE_SFU_APP_ID` and `CLOUDFLARE_SFU_APP_SECRET`, `DJANGO_ALLOWED_HOSTS`.
 5. Deploy! Render provides free HTTPS which enables WebSocket (`wss://`), Screen Wake Lock, and PWA installation.
 6. *(Optional)* To stop the free instance from sleeping, point an uptime pinger at `https://<your-app>.onrender.com/healthz`. It answers `ok` without touching the database, so Neon can still scale to zero, and each ping costs a few bytes of Render's monthly bandwidth instead of a whole page.

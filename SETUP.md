@@ -6,19 +6,18 @@ Each feature stays hidden, or falls back to what worked before, until its key is
 
 Render does the rest on every deploy: its build command installs `requirements.txt` (one new package, `PyJWT[crypto]`), collects static files, and runs the database migrations on Neon.
 
-## 1. Push the work
+## 1. Merge the work
 
-The phases are commits on the branch `phases-1-to-6`. Nothing was pushed.
-
-```bash
-git push -u origin phases-1-to-6
-```
-
-Then open a pull request into `main` on GitHub. The **Tests** check runs on it. Merge when it's green, and Render deploys `main`.
+The phases are on the branch `phases-1-to-6`, pushed to GitHub on 28 October 2026 and not merged yet. When you're ready, open a pull request from it into `main` on GitHub. The **Tests** check runs on it. Merge when it's green, and Render deploys `main`.
 
 ## 2. Sign in with Google (Phase 2, about 10 minutes)
 
 You need a **client ID**. It isn't a secret: it shows in the page source. There is no client secret to keep.
+
+Done so far (28 October 2026): steps 1, 4 and 5. The "Word Hunt" project has its web client, and
+sign-in worked on `http://localhost`. The client ID is
+`1047709907473-j8iqafu466f8ia0vt1rl5md7k4j8rnc1.apps.googleusercontent.com`.
+Still to do: check that Branding (step 2) is filled in and Audience (step 3) is published, then step 6.
 
 1. Open [Google Cloud Console](https://console.cloud.google.com/) and create a project, for example "Word Hunt".
 2. **Google Auth Platform → Branding:**
@@ -42,6 +41,11 @@ To try it on your computer, set the same variable before `python manage.py runse
 
 Voice in games works without this wherever phones can connect directly. Some mobile networks
 can't, and Cloudflare's TURN relays their sound (1,000 GB a month free).
+
+Cloudflare asks for a card or PayPal before it turns Realtime on, even for the free part. You're
+only charged past 1,000 GB a month ($0.05 a GB), far more than the game uses. A Visa or
+Mastercard debit card with international online payments switched on in your bank app should do.
+The same setup also covers step 4. (No card yet? See "Where it stands" in ROADMAP.md.)
 
 1. [Cloudflare dashboard](https://dash.cloudflare.com/) → **Realtime → TURN Server** → **Create**.
 2. Copy the **Turn Token ID** and the **API Token** it shows once.
